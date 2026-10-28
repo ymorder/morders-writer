@@ -395,11 +395,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 apiKey
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                  : "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
               }`}
             >
               <KeyRound className="w-3.5 h-3.5" />
-              {apiKey ? "API Key Active" : "Set Gemini Key"}
+              {apiKey ? "Gemini Key Active" : "Live Scraper Active (Add Key Optional)"}
             </button>
           </div>
         </div>

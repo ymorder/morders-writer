@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiClient, extractJsonFromText } from "@/lib/gemini";
+import { hasGeminiKey, getGeminiClient, extractJsonFromText } from "@/lib/gemini";
 import { EDITOR_SYSTEM_PROMPT } from "@/lib/prompts";
 import { EditorOutputPackage } from "@/types/pipeline";
+import { buildAutonomousEditorPackage } from "@/lib/autonomousFallback";
 
 export const maxDuration = 60;
 
@@ -22,6 +23,20 @@ export async function POST(req: NextRequest) {
         { error: "Submitted text is required for editorial analysis." },
         { status: 400 }
       );
+    }
+
+    // If no Gemini key is provided yet, run the built-in deterministic Agency Editorial Audit
+    if (!hasGeminiKey(apiKey)) {
+      const fallbackEdit = buildAutonomousEditorPackage({
+        submittedText,
+        taskCard,
+        standingRules,
+        includeFullEditedVersion,
+      });
+      return NextResponse.json({
+        result: fallbackEdit,
+        mode: "autonomous_live_scraper",
+      });
     }
 
     const ai = getGeminiClient(apiKey);
@@ -117,7 +132,7 @@ Return ONLY a valid JSON object matching this exact schema:
       parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
     }
 
-    return NextResponse.json({ result: parsed });
+    return NextResponse.json({ result: parsed, mode: "gemini_live" });
   } catch (error: any) {
     console.error("Editor API error:", error);
     return NextResponse.json(

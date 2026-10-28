@@ -1,7 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 
+export function hasGeminiKey(userProvidedKey?: string): boolean {
+  const apiKey =
+    userProvidedKey?.trim() ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY;
+  return Boolean(apiKey && apiKey.length > 5);
+}
+
 export function getGeminiClient(userProvidedKey?: string) {
-  const apiKey = userProvidedKey?.trim() || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey =
+    userProvidedKey?.trim() ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error(
       "Missing Gemini API Key. Please enter your Gemini API Key in the top-right Settings bar or set GEMINI_API_KEY in .env.local."

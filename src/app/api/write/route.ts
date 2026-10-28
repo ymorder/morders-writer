@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiClient, extractJsonFromText, extractGroundingLinks } from "@/lib/gemini";
+import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks } from "@/lib/gemini";
 import { WRITER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { WriterOutputPackage } from "@/types/pipeline";
+import { buildAutonomousWriterPackage } from "@/lib/autonomousFallback";
 
 export const maxDuration = 60;
 
 function sanitizeArticleText(markdown: string): { cleaned: string; emDashesRemoved: number } {
   const matches = markdown.match(/—/g);
   const count = matches ? matches.length : 0;
-  // Replace em dashes (—) with a clean comma or standard hyphen depending on spacing
   const cleaned = markdown.replace(/\s*—\s*/g, ", ");
   return { cleaned, emDashesRemoved: count };
 }
@@ -34,6 +34,23 @@ export async function POST(req: NextRequest) {
         { error: "Topic, Target Language, and Target Country/Market are required." },
         { status: 400 }
       );
+    }
+
+    // If no Gemini key is provided yet, synthesize the 9-stage package from our live-scraped Google News, Reddit & X signals
+    if (!hasGeminiKey(apiKey)) {
+      const fallbackPkg = buildAutonomousWriterPackage({
+        topic,
+        targetLanguage,
+        targetCountry,
+        targetAudience,
+        websiteBrand,
+        wordCount: Number(wordCount) || 1800,
+        feasibilityContext,
+      });
+      return NextResponse.json({
+        result: fallbackPkg,
+        mode: "autonomous_live_scraper",
+      });
     }
 
     const ai = getGeminiClient(apiKey);
@@ -161,7 +178,6 @@ Return ONLY a valid JSON object matching this exact structure:
     const rawText = response.text || "";
     const parsed = extractJsonFromText<WriterOutputPackage>(rawText);
 
-    // Enforce zero em-dashes programmatically as a final safety guarantee
     if (parsed.stage4FullArticleMarkdown) {
       const { cleaned } = sanitizeArticleText(parsed.stage4FullArticleMarkdown);
       parsed.stage4FullArticleMarkdown = cleaned;
@@ -170,7 +186,7 @@ Return ONLY a valid JSON object matching this exact structure:
     const groundingUrls = extractGroundingLinks(response);
     parsed.groundingUrls = groundingUrls;
 
-    return NextResponse.json({ result: parsed });
+    return NextResponse.json({ result: parsed, mode: "gemini_live" });
   } catch (error: any) {
     console.error("Writer API error:", error);
     return NextResponse.json(
