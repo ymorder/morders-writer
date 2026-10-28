@@ -72,7 +72,7 @@ Open **http://localhost:3000** in your browser.
 
 ## Deploying to Production (Vercel)
 
-1. Push this repository to GitHub (`https://github.com/ymorder/nexus-seo-geo-studio`).
+1. Push this repository to GitHub (`https://github.com/ymorder/morders-writer`).
 2. Import the repository at **https://vercel.com/new**.
 3. *(Optional)* Add `GEMINI_API_KEY` under **Environment Variables**.
 4. Click **Deploy**.

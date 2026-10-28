@@ -101,13 +101,13 @@ export default function NexusStudioPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem("nexus_gemini_api_key");
+    const savedKey = localStorage.getItem("morders_writer_api_key") || localStorage.getItem("nexus_gemini_api_key");
     if (savedKey) setApiKey(savedKey);
   }, []);
 
   const handleSaveApiKey = (val: string) => {
     setApiKey(val);
-    localStorage.setItem("nexus_gemini_api_key", val);
+    localStorage.setItem("morders_writer_api_key", val);
   };
 
   const copyToClipboard = (text: string, id: string) => {

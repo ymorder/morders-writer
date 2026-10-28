@@ -49,7 +49,7 @@ export async function fetchLiveMultiSourceSignals(
       cleanTopic
     )}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
     const res = await fetch(rssUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; NexusSEOStudio/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; MordersWriter/1.0)" },
       next: { revalidate: 300 },
     });
     if (res.ok) {
@@ -84,7 +84,7 @@ export async function fetchLiveMultiSourceSignals(
     )}&sort=relevance&t=year&limit=6`;
     const res = await fetch(redditUrl, {
       headers: {
-        "User-Agent": "web:nexus-seo-geo-studio:v1.0.0 (by /u/nexus_research)",
+        "User-Agent": "web:morders-writer:v1.0.0 (by /u/morders_writer)",
         Accept: "application/json",
       },
       next: { revalidate: 300 },
@@ -117,7 +117,7 @@ export async function fetchLiveMultiSourceSignals(
       xQuery
     )}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
     const res = await fetch(xRssUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; NexusSEOStudio/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; MordersWriter/1.0)" },
       next: { revalidate: 300 },
     });
     if (res.ok) {
