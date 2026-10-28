@@ -838,11 +838,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             )}
 
             {errorMessage && (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-100 text-xs flex items-start gap-3 leading-relaxed">
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-100 text-xs flex items-start gap-3 leading-relaxed break-words overflow-hidden">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0 flex-1">
                   <div className="font-bold">שים לב</div>
-                  <div>{errorMessage}</div>
+                  <div className="break-words">{errorMessage}</div>
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks } from "@/lib/gemini";
+import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks, formatGeminiError } from "@/lib/gemini";
 import { FEASIBILITY_SYSTEM_PROMPT } from "@/lib/prompts";
 import { FeasibilityResult } from "@/types/pipeline";
 import { fetchLiveMultiSourceSignals } from "@/lib/liveSearch";
@@ -152,7 +152,7 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
   } catch (error: any) {
     console.error("Feasibility API error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to run feasibility & multi-source intelligence check." },
+      { error: formatGeminiError(error) },
       { status: 500 }
     );
   }

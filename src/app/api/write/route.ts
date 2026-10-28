@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks } from "@/lib/gemini";
+import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks, formatGeminiError } from "@/lib/gemini";
 import { WRITER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { WriterOutputPackage } from "@/types/pipeline";
 
@@ -199,14 +199,14 @@ Return ONLY a valid JSON object matching this exact structure:
     } catch (gemErr: any) {
       console.error("Writer Gemini API error:", gemErr);
       return NextResponse.json(
-        { error: `Gemini API Error: ${gemErr?.message || "Failed to generate article."}` },
+        { error: formatGeminiError(gemErr) },
         { status: 500 }
       );
     }
   } catch (error: any) {
     console.error("Writer API error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to execute 9-stage writer pipeline." },
+      { error: formatGeminiError(error) },
       { status: 500 }
     );
   }

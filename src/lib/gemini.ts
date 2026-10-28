@@ -1,24 +1,44 @@
 import { GoogleGenAI } from "@google/genai";
 
+export function sanitizeApiKey(rawKey?: string): string {
+  if (!rawKey) return "";
+  return rawKey
+    .trim()
+    .replace(/^["']+|["']+$/g, "")
+    .replace(/^GEMINI_API_KEY\s*=\s*/i, "")
+    .replace(/\s+/g, "");
+}
+
 export function hasGeminiKey(userProvidedKey?: string): boolean {
   const apiKey =
-    userProvidedKey?.trim() ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY;
+    sanitizeApiKey(userProvidedKey) ||
+    sanitizeApiKey(process.env.GEMINI_API_KEY) ||
+    sanitizeApiKey(process.env.GOOGLE_API_KEY);
   return Boolean(apiKey && apiKey.length > 5);
 }
 
 export function getGeminiClient(userProvidedKey?: string) {
   const apiKey =
-    userProvidedKey?.trim() ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY;
+    sanitizeApiKey(userProvidedKey) ||
+    sanitizeApiKey(process.env.GEMINI_API_KEY) ||
+    sanitizeApiKey(process.env.GOOGLE_API_KEY);
   if (!apiKey) {
     throw new Error(
-      "Missing Gemini API Key. Please enter your Gemini API Key in the top-right Settings bar or set GEMINI_API_KEY in .env.local."
+      "חסר מפתח Gemini API. אנא לחץ על 'הגדר Gemini API Key' בראש העמוד והדבק מפתח תקין מ-Google AI Studio."
     );
   }
   return new GoogleGenAI({ apiKey });
+}
+
+export function formatGeminiError(error: any): string {
+  const msg = String(error?.message || error || "");
+  if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) {
+    return "מפתח ה-API שהוזן אינו תקין (API_KEY_INVALID). ודא שהעתקת מפתח מלא מ-Google AI Studio שמתחיל ב-AIzaSy ללא רווחים מיותרים.";
+  }
+  if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429")) {
+    return "חרגת ממכסת הבקשות לדקה (Rate Limit) של המפתח ב-Google AI Studio. המתן כ-30 שניות או עבור למודל Gemini 2.5 Flash בתיבה למעלה.";
+  }
+  return msg || "אירעה שגיאה בתקשורת מול שרת ה-AI.";
 }
 
 export function extractJsonFromText<T>(rawText: string): T {

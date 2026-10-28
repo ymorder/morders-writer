@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText } from "@/lib/gemini";
+import { hasGeminiKey, getGeminiClient, extractJsonFromText, formatGeminiError } from "@/lib/gemini";
 import { EDITOR_SYSTEM_PROMPT } from "@/lib/prompts";
 import { EditorOutputPackage } from "@/types/pipeline";
 
@@ -145,14 +145,14 @@ Return ONLY a valid JSON object matching this exact schema:
     } catch (gemErr: any) {
       console.error("Editor Gemini API error:", gemErr);
       return NextResponse.json(
-        { error: `Gemini API Error: ${gemErr?.message || "Failed to run editor."}` },
+        { error: formatGeminiError(gemErr) },
         { status: 500 }
       );
     }
   } catch (error: any) {
     console.warn("Editor API error:", error?.message);
     return NextResponse.json(
-      { error: error?.message || "Failed to execute editorial analysis." },
+      { error: formatGeminiError(error) },
       { status: 500 }
     );
   }
