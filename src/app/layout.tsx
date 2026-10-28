@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NEXUS // Autonomous SEO, GEO & Editorial Intelligence Studio",
+  title: "Morder's Writer // Autonomous SEO, GEO & Editorial Studio",
   description:
-    "Live Google News, Reddit & X (Twitter) grounded 9-stage SEO/GEO Writer and Priority-Ranked Agency Editor.",
+    "Morder's Writer: Live Google News, Reddit & X (Twitter) grounded 9-stage SEO/GEO Writer and Priority-Ranked Agency Editor.",
 };
 
 export default function RootLayout({

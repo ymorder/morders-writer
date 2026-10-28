@@ -333,7 +333,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold tracking-tight text-white text-lg">
-                  NEXUS
+                  Morder&apos;s Writer
                 </span>
                 <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                   SEO + GEO + Editorial AI

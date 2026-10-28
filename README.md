@@ -1,8 +1,8 @@
-# NEXUS // Autonomous SEO, GEO & Editorial Intelligence Studio
+# Morder's Writer // Autonomous SEO, GEO & Editorial Studio
 
-**NEXUS** is an autonomous full-stack content research, writing, and editorial intelligence platform designed to produce publish-ready, #1 ranking **Google SERP** and **Generative Engine Optimization (GEO)** articles (cited by ChatGPT, Gemini, Perplexity, and Google AI Overviews).
+**Morder's Writer** is an autonomous full-stack content research, writing, and editorial intelligence platform designed to produce publish-ready, #1 ranking **Google SERP** and **Generative Engine Optimization (GEO)** articles (cited by ChatGPT, Gemini, Perplexity, and Google AI Overviews).
 
-Before writing a single word, NEXUS autonomously evaluates whether a topic can be covered authoritatively by pulling live signals across **Google News**, **Reddit** practitioner discussions, **X (Twitter)** commentary, and **Official Authoritative Sources**.
+Before writing a single word, **Morder's Writer** autonomously evaluates whether a topic can be covered authoritatively by pulling live signals across **Google News**, **Reddit** practitioner discussions, **X (Twitter)** commentary, and **Official Authoritative Sources**.
 
 ---
 
