@@ -100,6 +100,12 @@ export default function MordersWriterPage() {
 
   const [activeTab, setActiveTab] = useState<OutputTab>("final_polished");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showRawKey, setShowRawKey] = useState<boolean>(false);
+  const [verifyingKey, setVerifyingKey] = useState<boolean>(false);
+  const [keyStatusMsg, setKeyStatusMsg] = useState<{
+    valid: boolean;
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     const savedKey =
@@ -110,7 +116,33 @@ export default function MordersWriterPage() {
 
   const handleSaveApiKey = (val: string) => {
     setApiKey(val);
+    setKeyStatusMsg(null);
     localStorage.setItem("morders_writer_api_key", val);
+    localStorage.setItem("nexus_gemini_api_key", val);
+  };
+
+  const handleVerifyKey = async () => {
+    setVerifyingKey(true);
+    setKeyStatusMsg(null);
+    try {
+      const res = await fetch("/api/verify-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey }),
+      });
+      const data = await res.json();
+      setKeyStatusMsg({
+        valid: Boolean(data.valid),
+        text: data.message || (data.valid ? "המפתח תקין!" : "המפתח אינו תקין"),
+      });
+    } catch (e: any) {
+      setKeyStatusMsg({
+        valid: false,
+        text: e?.message || "שגיאה בבדיקת המפתח",
+      });
+    } finally {
+      setVerifyingKey(false);
+    }
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -443,36 +475,77 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         {/* Collapsible API Key Bar */}
         {showKeyModal && (
           <div className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4">
-            <div className="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-4">
-              <div className="text-xs text-zinc-300 flex items-center gap-3">
-                <span>
-                  <strong className="text-white">Gemini API Key:</strong> הדבק מפתח מ-Google AI Studio כדי להפעיל את מודל הכתיבה והמחקר המלא (נשמר אוטומטית בדפדפן).
-                </span>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 hover:bg-zinc-700 font-medium inline-flex items-center gap-1.5 transition-colors"
-                >
-                  הפקת מפתח חינם ב-Google AI Studio
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+            <div className="max-w-[1680px] mx-auto space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="text-xs text-zinc-300 flex flex-wrap items-center gap-3">
+                  <span>
+                    <strong className="text-white">API Key (תומך ב-Gemini / OpenAI / Claude / Groq):</strong>{" "}
+                    הדבק מפתח מ-Google AI Studio (`AIzaSy...`), מ-OpenAI (`sk-...`) או מ-Groq (`gsk_...`).
+                  </span>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 hover:bg-zinc-700 font-medium inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    Google AI Studio
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 hover:bg-zinc-700 font-medium inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    Groq (מפתח חינם בשנייה)
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="flex items-center gap-2 flex-1 max-w-xl">
+                  <input
+                    type={showRawKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => handleSaveApiKey(e.target.value)}
+                    placeholder="הדבק כאן מפתח (למשל AIzaSy... או sk-... או gsk_...)"
+                    className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white font-mono focus:outline-none focus:border-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRawKey(!showRawKey)}
+                    className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs hover:text-white whitespace-nowrap"
+                  >
+                    {showRawKey ? "הסתר" : "הצג מפתח"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleVerifyKey}
+                    disabled={verifyingKey}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
+                  >
+                    {verifyingKey ? "בודק..." : "בדוק מפתח"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyModal(false)}
+                    className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
+                  >
+                    סגור
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5 flex-1 max-w-md">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => handleSaveApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-white"
-                />
-                <button
-                  onClick={() => setShowKeyModal(false)}
-                  className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
+
+              {keyStatusMsg && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-medium border ${
+                    keyStatusMsg.valid
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                  }`}
                 >
-                  שמור
-                </button>
-              </div>
+                  {keyStatusMsg.text}
+                </div>
+              )}
             </div>
           </div>
         )}

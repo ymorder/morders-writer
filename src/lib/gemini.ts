@@ -1,59 +1,231 @@
 import { GoogleGenAI } from "@google/genai";
 
+export type KeyProvider =
+  | "gemini"
+  | "openai"
+  | "anthropic"
+  | "groq"
+  | "openrouter"
+  | "unknown";
+
 export function sanitizeApiKey(rawKey?: string): string {
   if (!rawKey) return "";
   return rawKey
     .trim()
     .replace(/^["']+|["']+$/g, "")
-    .replace(/^GEMINI_API_KEY\s*=\s*/i, "")
-    .replace(/\s+/g, "");
+    .replace(/^(GEMINI_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|API_KEY)\s*=\s*/i, "")
+    .replace(/^Bearer\s+/i, "")
+    .replace(/[^\x21-\x7E]/g, ""); // Strip invisible Unicode / RTL marks
+}
+
+export function detectKeyProvider(rawKey?: string): KeyProvider {
+  const key = sanitizeApiKey(rawKey);
+  if (!key) return "unknown";
+  if (key.startsWith("AIza")) return "gemini";
+  if (key.startsWith("sk-ant-")) return "anthropic";
+  if (key.startsWith("sk-or-")) return "openrouter";
+  if (key.startsWith("gsk_")) return "groq";
+  if (key.startsWith("sk-")) return "openai";
+  return "gemini"; // try Gemini by default if format is custom
+}
+
+export function getEffectiveApiKey(userProvidedKey?: string): string {
+  return (
+    sanitizeApiKey(userProvidedKey) ||
+    sanitizeApiKey(process.env.GEMINI_API_KEY) ||
+    sanitizeApiKey(process.env.GOOGLE_API_KEY) ||
+    sanitizeApiKey(process.env.OPENAI_API_KEY) ||
+    ""
+  );
 }
 
 export function hasGeminiKey(userProvidedKey?: string): boolean {
-  const apiKey =
-    sanitizeApiKey(userProvidedKey) ||
-    sanitizeApiKey(process.env.GEMINI_API_KEY) ||
-    sanitizeApiKey(process.env.GOOGLE_API_KEY);
-  return Boolean(apiKey && apiKey.length > 5);
+  const apiKey = getEffectiveApiKey(userProvidedKey);
+  return Boolean(apiKey && apiKey.length > 8);
 }
 
 export function getGeminiClient(userProvidedKey?: string) {
-  const apiKey =
-    sanitizeApiKey(userProvidedKey) ||
-    sanitizeApiKey(process.env.GEMINI_API_KEY) ||
-    sanitizeApiKey(process.env.GOOGLE_API_KEY);
+  const apiKey = getEffectiveApiKey(userProvidedKey);
   if (!apiKey) {
     throw new Error(
-      "חסר מפתח Gemini API. אנא לחץ על 'הגדר Gemini API Key' בראש העמוד והדבק מפתח תקין מ-Google AI Studio."
+      "חסר מפתח API. אנא לחץ על 'הגדר API Key' בראש העמוד והדבק מפתח תקין."
     );
   }
   return new GoogleGenAI({ apiKey });
 }
 
-export function formatGeminiError(error: any): string {
+export async function generateStructuredContent(params: {
+  apiKey?: string;
+  model?: string;
+  systemInstruction: string;
+  userPrompt: string;
+  temperature?: number;
+  useGoogleSearch?: boolean;
+}): Promise<{ text: string; groundingLinks: { title: string; url: string }[] }> {
+  const {
+    apiKey: rawKey,
+    model = "gemini-2.5-pro",
+    systemInstruction,
+    userPrompt,
+    temperature = 0.25,
+    useGoogleSearch = true,
+  } = params;
+
+  const key = getEffectiveApiKey(rawKey);
+  if (!key) {
+    throw new Error("חסר מפתח API. אנא הזן מפתח בתיבה בראש העמוד.");
+  }
+
+  const provider = detectKeyProvider(key);
+
+  // 1. OpenAI (sk-...) or Groq (gsk_...) or OpenRouter (sk-or-...)
+  if (provider === "openai" || provider === "groq" || provider === "openrouter") {
+    const endpoint =
+      provider === "groq"
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : provider === "openrouter"
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : "https://api.openai.com/v1/chat/completions";
+
+    const targetModel =
+      provider === "groq"
+        ? "llama-3.3-70b-versatile"
+        : provider === "openrouter"
+        ? "google/gemini-2.5-pro-preview"
+        : "gpt-4o";
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: targetModel,
+        temperature,
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data?.error?.message || `שגיאת ${provider.toUpperCase()}: ${res.statusText}`
+      );
+    }
+
+    const text = data?.choices?.[0]?.message?.content || "";
+    return { text, groundingLinks: [] };
+  }
+
+  // 2. Anthropic Claude (sk-ant-...)
+  if (provider === "anthropic") {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-7-sonnet-latest",
+        max_tokens: 8000,
+        temperature,
+        system: systemInstruction,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data?.error?.message || `שגיאת Anthropic: ${res.statusText}`
+      );
+    }
+
+    const text = data?.content?.[0]?.text || "";
+    return { text, groundingLinks: [] };
+  }
+
+  // 3. Google Gemini (AIza...)
+  const ai = new GoogleGenAI({ apiKey: key });
+  let response;
+  if (useGoogleSearch) {
+    try {
+      response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction,
+          tools: [{ googleSearch: {} }],
+          temperature,
+        },
+      });
+    } catch (firstErr: any) {
+      const errMsg = String(firstErr?.message || "");
+      // If the key itself is invalid, don't retry with the same invalid key; throw immediately with diagnostics
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key not valid")) {
+        throw firstErr;
+      }
+      // Otherwise retry without googleSearch tool (e.g. if search grounding quota is restricted)
+      response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction,
+          temperature,
+        },
+      });
+    }
+  } else {
+    response = await ai.models.generateContent({
+      model,
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        temperature,
+      },
+    });
+  }
+
+  const text = response.text || "";
+  const groundingLinks = extractGroundingLinks(response);
+  return { text, groundingLinks };
+}
+
+export function formatGeminiError(error: any, rawKeyProvided?: string): string {
   const msg = String(error?.message || error || "");
+  const cleanKey = sanitizeApiKey(rawKeyProvided);
+  const preview = cleanKey
+    ? `(המפתח שהוזן מתחיל ב-"${cleanKey.slice(0, 6)}..." ואורכו ${cleanKey.length} תווים)`
+    : "(לא התקבל מפתח)";
+
   if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) {
-    return "מפתח ה-API שהוזן אינו תקין (API_KEY_INVALID). ודא שהעתקת מפתח מלא מ-Google AI Studio שמתחיל ב-AIzaSy ללא רווחים מיותרים.";
+    if (cleanKey && !cleanKey.startsWith("AIza")) {
+      return `המפתח שהזנת ${preview} אינו מפתח Gemini תקין (מפתח Gemini חייב להתחיל באותיות AIzaSy ואורכו 39 תווים). אם זה מפתח של OpenAI הוא צריך להתחיל ב-sk- ואם של Groq ב-gsk_.`;
+    }
+    return `גוגל דחתה את המפתח כלא תקין ${preview}. זה קורה אם: 1) המפתח לא הועתק במלואו (חייב להיות 39 תווים שמתחילים ב-AIzaSy), או 2) בפרויקט ה-Google Cloud שיצרת עדיין לא הופעל ה-Generative Language API. לחץ על 'בדוק מפתח' למעלה לבדיקה מהירה.`;
   }
   if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429")) {
-    return "חרגת ממכסת הבקשות לדקה (Rate Limit) של המפתח ב-Google AI Studio. המתן כ-30 שניות או עבור למודל Gemini 2.5 Flash בתיבה למעלה.";
+    return "חרגת ממכסת הבקשות לדקה (Rate Limit). המתן כ-30 שניות או עבור למודל Gemini 2.5 Flash בתיבה למעלה.";
   }
   return msg || "אירעה שגיאה בתקשורת מול שרת ה-AI.";
 }
 
 export function extractJsonFromText<T>(rawText: string): T {
   const cleaned = rawText.trim();
-  // Try direct parse first
   try {
     return JSON.parse(cleaned) as T;
   } catch {
-    // Try extracting from ```json ... ``` or first { to last }
     const jsonBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
     if (jsonBlockMatch && jsonBlockMatch[1]) {
       try {
         return JSON.parse(jsonBlockMatch[1].trim()) as T;
       } catch {
-        // continue to brace extraction
+        // continue
       }
     }
     const firstBrace = cleaned.indexOf("{");
@@ -62,7 +234,7 @@ export function extractJsonFromText<T>(rawText: string): T {
       const candidate = cleaned.slice(firstBrace, lastBrace + 1);
       return JSON.parse(candidate) as T;
     }
-    throw new Error("Failed to parse structured JSON response from Gemini.");
+    throw new Error("Failed to parse structured JSON response from AI.");
   }
 }
 
@@ -83,7 +255,7 @@ export function extractGroundingLinks(response: any): { title: string; url: stri
       }
     }
   } catch {
-    // ignore metadata extraction errors
+    // ignore
   }
 
   return links;

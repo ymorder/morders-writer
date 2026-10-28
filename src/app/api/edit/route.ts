@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText, formatGeminiError } from "@/lib/gemini";
+import {
+  hasGeminiKey,
+  generateStructuredContent,
+  extractJsonFromText,
+  formatGeminiError,
+} from "@/lib/gemini";
 import { EDITOR_SYSTEM_PROMPT } from "@/lib/prompts";
 import { EditorOutputPackage } from "@/types/pipeline";
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  let providedKey = "";
   try {
     const body = await req.json();
     const {
@@ -14,8 +20,9 @@ export async function POST(req: NextRequest) {
       standingRules,
       includeFullEditedVersion = true,
       apiKey,
-      model = "gemini-2.5-flash",
+      model = "gemini-2.5-pro",
     } = body;
+    providedKey = apiKey || "";
 
     if (!submittedText || !submittedText.trim()) {
       return NextResponse.json(
@@ -29,13 +36,11 @@ export async function POST(req: NextRequest) {
         {
           needsApiKey: true,
           error:
-            "חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה כדי לבצע עריכה מקצועית אמיתית.",
+            "חובה להזין מפתח API תקין בכפתור למעלה כדי לבצע עריכה מקצועית.",
         },
         { status: 401 }
       );
     }
-
-    const ai = getGeminiClient(apiKey);
 
     const taskCardBlock = taskCard?.trim()
       ? `ATTACHED TASK CARD (Overrides defaults where specified):\n${taskCard.trim()}`
@@ -111,48 +116,29 @@ Return ONLY a valid JSON object matching this exact schema:
   }
 }`;
 
-    try {
-      let response;
-      try {
-        response = await ai.models.generateContent({
-          model,
-          contents: userPrompt,
-          config: {
-            systemInstruction: EDITOR_SYSTEM_PROMPT,
-            tools: [{ googleSearch: {} }],
-            temperature: 0.25,
-          },
-        });
-      } catch {
-        response = await ai.models.generateContent({
-          model,
-          contents: userPrompt,
-          config: {
-            systemInstruction: EDITOR_SYSTEM_PROMPT,
-            temperature: 0.25,
-          },
-        });
-      }
+    const { text: rawText } = await generateStructuredContent({
+      apiKey,
+      model,
+      systemInstruction: EDITOR_SYSTEM_PROMPT,
+      userPrompt,
+      temperature: 0.25,
+      useGoogleSearch: true,
+    });
 
-      const rawText = response.text || "";
-      const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
+    const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
 
-      if (parsed.editedPublishReadyMarkdown) {
-        parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
-      }
-
-      return NextResponse.json({ result: parsed, mode: "gemini_live" });
-    } catch (gemErr: any) {
-      console.error("Editor Gemini API error:", gemErr);
-      return NextResponse.json(
-        { error: formatGeminiError(gemErr) },
-        { status: 500 }
+    if (parsed.editedPublishReadyMarkdown) {
+      parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(
+        /\s*—\s*/g,
+        ", "
       );
     }
+
+    return NextResponse.json({ result: parsed, mode: "ai_live" });
   } catch (error: any) {
     console.warn("Editor API error:", error?.message);
     return NextResponse.json(
-      { error: formatGeminiError(error) },
+      { error: formatGeminiError(error, providedKey) },
       { status: 500 }
     );
   }

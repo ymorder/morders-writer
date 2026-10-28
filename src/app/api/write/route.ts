@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks, formatGeminiError } from "@/lib/gemini";
+import {
+  hasGeminiKey,
+  generateStructuredContent,
+  extractJsonFromText,
+  formatGeminiError,
+} from "@/lib/gemini";
 import { WRITER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { WriterOutputPackage } from "@/types/pipeline";
 
@@ -13,6 +18,7 @@ function sanitizeArticleText(markdown: string): { cleaned: string; emDashesRemov
 }
 
 export async function POST(req: NextRequest) {
+  let providedKey = "";
   try {
     const body = await req.json();
     const {
@@ -25,8 +31,9 @@ export async function POST(req: NextRequest) {
       standingRules,
       feasibilityContext,
       apiKey,
-      model = "gemini-2.5-flash",
+      model = "gemini-2.5-pro",
     } = body;
+    providedKey = apiKey || "";
 
     if (!topic?.trim() || !targetLanguage?.trim() || !targetCountry?.trim()) {
       return NextResponse.json(
@@ -40,19 +47,17 @@ export async function POST(req: NextRequest) {
         {
           needsApiKey: true,
           error:
-            "חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה כדי לכתוב מאמר אמיתי ומעמיק (הסרנו את התבנית הגנרית).",
+            "חובה להזין מפתח API תקין בכפתור למעלה כדי לכתוב מאמר אמיתי ומעמיק.",
         },
         { status: 401 }
       );
     }
 
-    const ai = getGeminiClient(apiKey);
-
     const intelligenceBlock = feasibilityContext
       ? `
-Verified Multi-Source Research Context (Integrate these real insights, latest news, Reddit & X perspectives, and authoritative sources):
+Verified Multi-Source Research Context (Integrate these real insights, latest news, Reddit u/username quotes & X perspectives, and authoritative sources):
 - Latest News: ${JSON.stringify(feasibilityContext.latestNewsSummary || [])}
-- Reddit Insights: ${JSON.stringify(feasibilityContext.redditInsights || [])}
+- Reddit Insights (with u/username): ${JSON.stringify(feasibilityContext.redditInsights || [])}
 - X (Twitter) Insights: ${JSON.stringify(feasibilityContext.xTwitterInsights || [])}
 - Verified Sources: ${JSON.stringify(feasibilityContext.authoritativeSources || [])}
 `
@@ -161,52 +166,29 @@ Return ONLY a valid JSON object matching this exact structure:
   }
 }`;
 
-    try {
-      let response;
-      try {
-        response = await ai.models.generateContent({
-          model,
-          contents: userPrompt,
-          config: {
-            systemInstruction: WRITER_SYSTEM_PROMPT,
-            tools: [{ googleSearch: {} }],
-            temperature: 0.3,
-          },
-        });
-      } catch {
-        response = await ai.models.generateContent({
-          model,
-          contents: userPrompt,
-          config: {
-            systemInstruction: WRITER_SYSTEM_PROMPT,
-            temperature: 0.3,
-          },
-        });
-      }
+    const { text: rawText, groundingLinks } = await generateStructuredContent({
+      apiKey,
+      model,
+      systemInstruction: WRITER_SYSTEM_PROMPT,
+      userPrompt,
+      temperature: 0.3,
+      useGoogleSearch: true,
+    });
 
-      const rawText = response.text || "";
-      const parsed = extractJsonFromText<WriterOutputPackage>(rawText);
+    const parsed = extractJsonFromText<WriterOutputPackage>(rawText);
 
-      if (parsed.stage4FullArticleMarkdown) {
-        const { cleaned } = sanitizeArticleText(parsed.stage4FullArticleMarkdown);
-        parsed.stage4FullArticleMarkdown = cleaned;
-      }
-
-      const groundingUrls = extractGroundingLinks(response);
-      parsed.groundingUrls = groundingUrls;
-
-      return NextResponse.json({ result: parsed, mode: "gemini_live" });
-    } catch (gemErr: any) {
-      console.error("Writer Gemini API error:", gemErr);
-      return NextResponse.json(
-        { error: formatGeminiError(gemErr) },
-        { status: 500 }
-      );
+    if (parsed.stage4FullArticleMarkdown) {
+      const { cleaned } = sanitizeArticleText(parsed.stage4FullArticleMarkdown);
+      parsed.stage4FullArticleMarkdown = cleaned;
     }
+
+    parsed.groundingUrls = groundingLinks;
+
+    return NextResponse.json({ result: parsed, mode: "ai_live" });
   } catch (error: any) {
     console.error("Writer API error:", error);
     return NextResponse.json(
-      { error: formatGeminiError(error) },
+      { error: formatGeminiError(error, providedKey) },
       { status: 500 }
     );
   }

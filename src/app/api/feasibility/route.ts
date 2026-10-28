@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks, formatGeminiError } from "@/lib/gemini";
+import {
+  hasGeminiKey,
+  generateStructuredContent,
+  extractJsonFromText,
+  formatGeminiError,
+} from "@/lib/gemini";
 import { FEASIBILITY_SYSTEM_PROMPT } from "@/lib/prompts";
 import { FeasibilityResult } from "@/types/pipeline";
 import { fetchLiveMultiSourceSignals } from "@/lib/liveSearch";
@@ -7,6 +12,7 @@ import { fetchLiveMultiSourceSignals } from "@/lib/liveSearch";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  let providedKey = "";
   try {
     const body = await req.json();
     const {
@@ -17,44 +23,42 @@ export async function POST(req: NextRequest) {
       websiteBrand,
       wordCount = 1800,
       apiKey,
-      model = "gemini-2.5-flash",
+      model = "gemini-2.5-pro",
     } = body;
+    providedKey = apiKey || "";
 
     if (!topic || !topic.trim()) {
       return NextResponse.json({ error: "Topic is required." }, { status: 400 });
     }
 
-    // Input Handling Rule 1: Check if Target Language and Target Country/Market are provided.
     if (!targetLanguage?.trim() || !targetCountry?.trim()) {
       return NextResponse.json(
         {
           needsClarification: true,
           clarificationMessage:
-            "Before starting research and writing, please confirm your Target Language and Target Country/Market so we can ground SERP, Reddit, and X research accurately.",
+            "נא לבחור שפת יעד ומדינת יעד לפני תחילת המחקר.",
         },
         { status: 200 }
       );
     }
-
-    // Always gather real live signals from Google News RSS, Reddit JSON API, and Web/X pulse
-    const liveSignals = await fetchLiveMultiSourceSignals(
-      topic,
-      targetLanguage,
-      targetCountry
-    );
 
     if (!hasGeminiKey(apiKey)) {
       return NextResponse.json(
         {
           needsApiKey: true,
           error:
-            "כדי לייצר תוכן אמיתי, מעמיק ומדויק (ולא תבנית גנרית), חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה.",
+            "כדי לייצר תוכן אמיתי, מעמיק ומדויק, חובה להזין מפתח API תקין בכפתור למעלה.",
         },
         { status: 401 }
       );
     }
 
-    const ai = getGeminiClient(apiKey);
+    // Gather live signals from Google News RSS & Reddit (with u/username + top comments)
+    const liveSignals = await fetchLiveMultiSourceSignals(
+      topic,
+      targetLanguage,
+      targetCountry
+    );
 
     const userPrompt = `Evaluate autonomous writing feasibility and gather live multi-source intelligence for the following topic:
 
@@ -108,34 +112,21 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
   ]
 }`;
 
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model,
-        contents: userPrompt,
-        config: {
-          systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
-          tools: [{ googleSearch: {} }],
-          temperature: 0.2,
-        },
-      });
-    } catch {
-      response = await ai.models.generateContent({
-        model,
-        contents: userPrompt,
-        config: {
-          systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
-          temperature: 0.2,
-        },
-      });
-    }
+    const { text: rawText, groundingLinks } = await generateStructuredContent({
+      apiKey,
+      model,
+      systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
+      userPrompt,
+      temperature: 0.2,
+      useGoogleSearch: true,
+    });
 
-    const rawText = response.text || "";
     const parsed = extractJsonFromText<FeasibilityResult>(rawText);
-    const groundingLinks = extractGroundingLinks(response);
 
     if (groundingLinks.length > 0) {
-      const existingUrls = new Set((parsed.authoritativeSources || []).map((s) => s.url));
+      const existingUrls = new Set(
+        (parsed.authoritativeSources || []).map((s) => s.url)
+      );
       for (const link of groundingLinks) {
         if (!existingUrls.has(link.url)) {
           parsed.authoritativeSources = parsed.authoritativeSources || [];
@@ -148,11 +139,11 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
       }
     }
 
-    return NextResponse.json({ result: parsed, mode: "gemini_live" });
+    return NextResponse.json({ result: parsed, mode: "ai_live" });
   } catch (error: any) {
     console.error("Feasibility API error:", error);
     return NextResponse.json(
-      { error: formatGeminiError(error) },
+      { error: formatGeminiError(error, providedKey) },
       { status: 500 }
     );
   }
