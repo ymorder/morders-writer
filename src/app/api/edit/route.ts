@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasGeminiKey, getGeminiClient, extractJsonFromText } from "@/lib/gemini";
 import { EDITOR_SYSTEM_PROMPT } from "@/lib/prompts";
 import { EditorOutputPackage } from "@/types/pipeline";
-import { buildAutonomousEditorPackage } from "@/lib/autonomousFallback";
 
 export const maxDuration = 60;
 
@@ -25,18 +24,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If no Gemini key is provided yet, run the built-in deterministic Agency Editorial Audit
     if (!hasGeminiKey(apiKey)) {
-      const fallbackEdit = buildAutonomousEditorPackage({
-        submittedText,
-        taskCard,
-        standingRules,
-        includeFullEditedVersion,
-      });
-      return NextResponse.json({
-        result: fallbackEdit,
-        mode: "autonomous_live_scraper",
-      });
+      return NextResponse.json(
+        {
+          needsApiKey: true,
+          error:
+            "חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה כדי לבצע עריכה מקצועית אמיתית.",
+        },
+        { status: 401 }
+      );
     }
 
     const ai = getGeminiClient(apiKey);
@@ -147,17 +143,11 @@ Return ONLY a valid JSON object matching this exact schema:
 
       return NextResponse.json({ result: parsed, mode: "gemini_live" });
     } catch (gemErr: any) {
-      console.warn("Editor Gemini API error, using autonomous fallback:", gemErr?.message);
-      const fallbackEdit = buildAutonomousEditorPackage({
-        submittedText,
-        taskCard,
-        standingRules,
-        includeFullEditedVersion,
-      });
-      return NextResponse.json({
-        result: fallbackEdit,
-        mode: "autonomous_live_scraper",
-      });
+      console.error("Editor Gemini API error:", gemErr);
+      return NextResponse.json(
+        { error: `Gemini API Error: ${gemErr?.message || "Failed to run editor."}` },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     console.warn("Editor API error:", error?.message);

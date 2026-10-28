@@ -60,7 +60,7 @@ export default function NexusStudioPage() {
   // Mode & Settings
   const [mode, setMode] = useState<StudioMode>("autonomous");
   const [apiKey, setApiKey] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-pro");
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   // Writer / Autonomous Inputs
@@ -121,6 +121,15 @@ export default function NexusStudioPage() {
     setErrorMessage(null);
     setClarificationPrompt(null);
 
+    if (!apiKey.trim()) {
+      setShowKeyModal(true);
+      setPhase("error");
+      setErrorMessage(
+        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini (ולא תבנית דמו), אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה (ניתן להפיק בחינם ב-aistudio.google.com/app/apikey)."
+      );
+      return;
+    }
+
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
@@ -174,6 +183,15 @@ export default function NexusStudioPage() {
     }
 
     // Rule #1: Check Target Language and Target Country/Market
+    if (!apiKey.trim()) {
+      setShowKeyModal(true);
+      setPhase("error");
+      setErrorMessage(
+        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini (ולא תבנית דמו), אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה (ניתן להפיק בחינם ב-aistudio.google.com/app/apikey)."
+      );
+      return;
+    }
+
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
@@ -389,8 +407,8 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
             >
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast + Search)</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Reasoning + Search)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Recommended — Deepest Writing Quality)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Faster)</option>
             </select>
 
             <button
@@ -398,26 +416,32 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 apiKey
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-zinc-900 border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+                  : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 animate-pulse"
               }`}
             >
-              <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
-              {apiKey ? "Gemini Key Active" : "Set Gemini Key (Optional)"}
+              <KeyRound className="w-3.5 h-3.5" />
+              {apiKey ? "Gemini Key Active" : "הכנס Gemini API Key (חובה לכתיבה חיה)"}
             </button>
           </div>
         </div>
 
         {/* Collapsible API Key Bar */}
         {showKeyModal && (
-          <div className="border-t border-slate-800 bg-slate-900/95 px-6 py-3">
+          <div className="border-t border-indigo-500/30 bg-slate-900/95 px-6 py-3">
             <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
-              <div className="text-xs text-slate-300">
-                <span className="font-semibold text-white">
-                  Gemini API Key (with Google Search Grounding):
-                </span>{" "}
-                Stored locally in your browser or read from{" "}
-                <code className="text-indigo-300">GEMINI_API_KEY</code> in{" "}
-                <code className="text-indigo-300">.env.local</code>.
+              <div className="text-xs text-slate-300 flex items-center gap-3">
+                <span>
+                  <strong className="text-white">Gemini API Key:</strong> הדבק כאן מפתח מ-Google AI Studio כדי להפעיל מחקר וכתיבה אמיתית ברמת קצה.
+                </span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:text-white font-semibold inline-flex items-center gap-1"
+                >
+                  קבל מפתח חינם תוך 10 שניות
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
               <div className="flex items-center gap-2 flex-1 max-w-md">
                 <input
@@ -431,7 +455,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   onClick={() => setShowKeyModal(false)}
                   className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-500"
                 >
-                  Done
+                  שמור
                 </button>
               </div>
             </div>

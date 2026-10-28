@@ -43,13 +43,20 @@ export async function POST(req: NextRequest) {
       targetCountry
     );
 
-    // If user has provided a Gemini API key (or set GEMINI_API_KEY in env), run deep Gemini synthesis + Google Search grounding
-    let geminiWarning: string | null = null;
-    if (hasGeminiKey(apiKey)) {
-      try {
-        const ai = getGeminiClient(apiKey);
+    if (!hasGeminiKey(apiKey)) {
+      return NextResponse.json(
+        {
+          needsApiKey: true,
+          error:
+            "כדי לייצר תוכן אמיתי, מעמיק ומדויק (ולא תבנית גנרית), חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה.",
+        },
+        { status: 401 }
+      );
+    }
 
-        const userPrompt = `Evaluate autonomous writing feasibility and gather live multi-source intelligence for the following topic:
+    const ai = getGeminiClient(apiKey);
+
+    const userPrompt = `Evaluate autonomous writing feasibility and gather live multi-source intelligence for the following topic:
 
 Topic: "${topic}"
 Target Language: "${targetLanguage}"
@@ -59,14 +66,14 @@ Website/Brand Tone (optional): "${websiteBrand || "Not specified - infer sensibl
 Target Word Count (optional): ${wordCount || 1800}
 
 Pre-Fetched Live Signals from Google News & Reddit to incorporate:
-- Google News: ${JSON.stringify(liveSignals.googleNews.slice(0, 4))}
-- Reddit Threads: ${JSON.stringify(liveSignals.redditThreads.slice(0, 4))}
+- Google News: ${JSON.stringify(liveSignals.googleNews.slice(0, 5))}
+- Reddit Threads: ${JSON.stringify(liveSignals.redditThreads.slice(0, 5))}
 
-Perform additional live searches across Google News, Reddit, X (Twitter), and official sources, and return a single valid JSON object with the exact following keys:
+Perform additional live searches across Google News, Reddit, X (Twitter), and official sources, and return a single valid JSON object with the exact following keys (write the summaries and verdict in "${targetLanguage}"):
 {
   "canWriteAuthoritatively": true,
   "confidenceScore": 94,
-  "feasibilityVerdict": "2-3 sentence explanation of why there is (or isn't) enough verified data to write an authoritative #1 ranking article right now.",
+  "feasibilityVerdict": "2-3 sentence explanation in ${targetLanguage} of why there is (or isn't) enough verified data to write an authoritative #1 ranking article right now.",
   "targetLanguageDetected": "${targetLanguage}",
   "targetCountryDetected": "${targetCountry}",
   "missingCriticalInfo": null,
@@ -98,132 +105,47 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
   ]
 }`;
 
-        let response;
-        try {
-          response = await ai.models.generateContent({
-            model,
-            contents: userPrompt,
-            config: {
-              systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
-              tools: [{ googleSearch: {} }],
-              temperature: 0.2,
-            },
-          });
-        } catch {
-          // Retry without googleSearch tool in case the user's API key tier restricts search grounding
-          response = await ai.models.generateContent({
-            model,
-            contents: userPrompt,
-            config: {
-              systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
-              temperature: 0.2,
-            },
-          });
-        }
-
-        const rawText = response.text || "";
-        const parsed = extractJsonFromText<FeasibilityResult>(rawText);
-        const groundingLinks = extractGroundingLinks(response);
-
-        if (groundingLinks.length > 0) {
-          const existingUrls = new Set((parsed.authoritativeSources || []).map((s) => s.url));
-          for (const link of groundingLinks) {
-            if (!existingUrls.has(link.url)) {
-              parsed.authoritativeSources = parsed.authoritativeSources || [];
-              parsed.authoritativeSources.push({
-                title: link.title,
-                url: link.url,
-                snippet: "Verified via Google Search Grounding",
-              });
-            }
-          }
-        }
-
-        return NextResponse.json({ result: parsed, mode: "gemini_live" });
-      } catch (gemErr: any) {
-        console.warn("Gemini API call failed in feasibility, falling back to live scraper:", gemErr?.message);
-        geminiWarning = gemErr?.message || "Gemini API error — used live scraper fallback";
-      }
-    }
-
-    // Autonomous Live Scraping Mode (Works immediately out-of-the-box with ZERO API Key required!)
-    const totalSignals =
-      liveSignals.googleNews.length +
-      liveSignals.redditThreads.length +
-      liveSignals.xAndWebMentions.length;
-
-    const score = Math.min(98, Math.max(76, 72 + totalSignals * 2));
-
-    const fallbackResult: FeasibilityResult = {
-      canWriteAuthoritatively: true,
-      confidenceScore: score,
-      feasibilityVerdict: `Live autonomous scan discovered ${liveSignals.googleNews.length} Google News articles and ${liveSignals.redditThreads.length} active Reddit discussions for "${topic}" in ${targetCountry} (${targetLanguage}). Sufficient empirical and community data confirmed to proceed with 9-stage writing.`,
-      targetLanguageDetected: targetLanguage,
-      targetCountryDetected: targetCountry,
-      missingCriticalInfo: null,
-      assumptionsMade: {
-        targetAudience:
-          targetAudience?.trim() ||
-          `Decision-makers, practitioners, and informed readers researching ${topic} in ${targetCountry}`,
-        websiteBrandTone:
-          websiteBrand?.trim() ||
-          "Authoritative, Empirical Industry Publication",
-        targetWordCount: Number(wordCount) || 1800,
-      },
-      latestNewsSummary:
-        liveSignals.googleNews.length > 0
-          ? liveSignals.googleNews.slice(0, 4).map(
-              (n) => `${n.title} (${n.source} • ${n.date})`
-            )
-          : [
-              `Active search demand and ongoing regulatory/market updates tracked for ${topic} in ${targetCountry}.`,
-              `Organizations in ${targetCountry} are prioritizing verified operational frameworks and measurable ROI benchmarks for ${topic}.`,
-            ],
-      redditInsights:
-        liveSignals.redditThreads.length > 0
-          ? liveSignals.redditThreads.slice(0, 4).map(
-              (r) =>
-                `[${r.subreddit} • ${r.score} upvotes, ${r.numComments} comments] "${r.title}"${
-                  r.snippet ? ` - ${r.snippet}` : ""
-                }`
-            )
-          : [
-              `Practitioners on Reddit emphasize real-world implementation edge cases and total cost transparency around ${topic}.`,
-              `Community discussions warn against generic surface-level definitions and ask for concrete step-by-step comparisons.`,
-            ],
-      xTwitterInsights:
-        liveSignals.xAndWebMentions.length > 0
-          ? liveSignals.xAndWebMentions.map((x) => `${x.title} (${x.snippet})`)
-          : [
-              `Real-time industry analysts on X highlight rapid adoption shifts and compliance nuances regarding ${topic}.`,
-              `Subject-matter experts stress verifying primary documentation and empirical benchmarks over vendor marketing claims.`,
-            ],
-      authoritativeSources: [
-        ...liveSignals.googleNews.slice(0, 3).map((n) => ({
-          title: `${n.source}: ${n.title}`,
-          url: n.url,
-          snippet: `Published ${n.date} via Google News`,
-        })),
-        ...liveSignals.redditThreads.slice(0, 3).map((r) => ({
-          title: `${r.subreddit}: ${r.title}`,
-          url: r.url,
-          snippet: `Reddit thread (${r.score} points, ${r.numComments} comments)`,
-        })),
-      ],
-    };
-
-    if (fallbackResult.authoritativeSources.length === 0) {
-      fallbackResult.authoritativeSources.push({
-        title: `Google Search Index: ${topic}`,
-        url: `https://www.google.com/search?q=${encodeURIComponent(topic)}`,
-        snippet: `Primary SERP index for ${topic} (${targetCountry})`,
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
+          tools: [{ googleSearch: {} }],
+          temperature: 0.2,
+        },
+      });
+    } catch {
+      response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
+          temperature: 0.2,
+        },
       });
     }
 
-    return NextResponse.json({
-      result: fallbackResult,
-      mode: "autonomous_live_scraper",
-    });
+    const rawText = response.text || "";
+    const parsed = extractJsonFromText<FeasibilityResult>(rawText);
+    const groundingLinks = extractGroundingLinks(response);
+
+    if (groundingLinks.length > 0) {
+      const existingUrls = new Set((parsed.authoritativeSources || []).map((s) => s.url));
+      for (const link of groundingLinks) {
+        if (!existingUrls.has(link.url)) {
+          parsed.authoritativeSources = parsed.authoritativeSources || [];
+          parsed.authoritativeSources.push({
+            title: link.title,
+            url: link.url,
+            snippet: "Verified via Google Search Grounding",
+          });
+        }
+      }
+    }
+
+    return NextResponse.json({ result: parsed, mode: "gemini_live" });
   } catch (error: any) {
     console.error("Feasibility API error:", error);
     return NextResponse.json(

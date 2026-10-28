@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasGeminiKey, getGeminiClient, extractJsonFromText, extractGroundingLinks } from "@/lib/gemini";
 import { WRITER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { WriterOutputPackage } from "@/types/pipeline";
-import { buildAutonomousWriterPackage } from "@/lib/autonomousFallback";
 
 export const maxDuration = 60;
 
@@ -36,21 +35,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If no Gemini key is provided yet, synthesize the 9-stage package from our live-scraped Google News, Reddit & X signals
     if (!hasGeminiKey(apiKey)) {
-      const fallbackPkg = buildAutonomousWriterPackage({
-        topic,
-        targetLanguage,
-        targetCountry,
-        targetAudience,
-        websiteBrand,
-        wordCount: Number(wordCount) || 1800,
-        feasibilityContext,
-      });
-      return NextResponse.json({
-        result: fallbackPkg,
-        mode: "autonomous_live_scraper",
-      });
+      return NextResponse.json(
+        {
+          needsApiKey: true,
+          error:
+            "חובה להזין מפתח Gemini API בכפתור 'Set Gemini Key' למעלה כדי לכתוב מאמר אמיתי ומעמיק (הסרנו את התבנית הגנרית).",
+        },
+        { status: 401 }
+      );
     }
 
     const ai = getGeminiClient(apiKey);
@@ -80,11 +73,13 @@ Target Word Count: ${wordCount}
 ${standingRulesBlock}
 ${intelligenceBlock}
 
-IMPORTANT LANGUAGE & QUALITY RULES:
-1. Write the article (Stage 4), Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
-2. ZERO EM DASHES (—) anywhere in the output.
-3. Start the article with a direct 2-3 sentence answer to the main query. Start every H2 section with a concise 1-2 sentence direct answer before expanding.
-4. Include data tables, empirical comparisons, or qualified legal/market mechanics where appropriate, with all numbers reconciled.
+IMPORTANT LANGUAGE, DEPTH & QUALITY RULES:
+1. Write the article (Stage 4), Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
+2. If "${targetLanguage}" is Hebrew (עברית), write like a veteran Israeli domain expert and senior journalist: natural, sharp, authoritative Hebrew syntax, zero translationese, zero awkward phrasing, and 100% pure Hebrew character set.
+3. NEVER write generic filler or abstract templates. Every paragraph must contain concrete domain mechanics, real named entities, specific figures, practical edge cases, and insights synthesized from the live news, Reddit, and X research.
+4. Write a comprehensive, deep, exhaustive article in 'stage4FullArticleMarkdown' (~${wordCount} words) with varied section structures, real-world scenarios, and a mathematically reconciled comparative table specific to "${topic}".
+5. ZERO EM DASHES (—) anywhere in the output.
+6. Start the article with a direct 2-3 sentence answer to the main query. Start every H2 section with a concise 1-2 sentence direct answer before expanding.
 
 Return ONLY a valid JSON object matching this exact structure:
 {
@@ -201,20 +196,11 @@ Return ONLY a valid JSON object matching this exact structure:
 
       return NextResponse.json({ result: parsed, mode: "gemini_live" });
     } catch (gemErr: any) {
-      console.warn("Writer Gemini API error, using autonomous live scraper fallback:", gemErr?.message);
-      const fallbackPkg = buildAutonomousWriterPackage({
-        topic,
-        targetLanguage,
-        targetCountry,
-        targetAudience,
-        websiteBrand,
-        wordCount: Number(wordCount) || 1800,
-        feasibilityContext,
-      });
-      return NextResponse.json({
-        result: fallbackPkg,
-        mode: "autonomous_live_scraper",
-      });
+      console.error("Writer Gemini API error:", gemErr);
+      return NextResponse.json(
+        { error: `Gemini API Error: ${gemErr?.message || "Failed to generate article."}` },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     console.error("Writer API error:", error);
