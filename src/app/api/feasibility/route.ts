@@ -44,10 +44,12 @@ export async function POST(req: NextRequest) {
     );
 
     // If user has provided a Gemini API key (or set GEMINI_API_KEY in env), run deep Gemini synthesis + Google Search grounding
+    let geminiWarning: string | null = null;
     if (hasGeminiKey(apiKey)) {
-      const ai = getGeminiClient(apiKey);
+      try {
+        const ai = getGeminiClient(apiKey);
 
-      const userPrompt = `Evaluate autonomous writing feasibility and gather live multi-source intelligence for the following topic:
+        const userPrompt = `Evaluate autonomous writing feasibility and gather live multi-source intelligence for the following topic:
 
 Topic: "${topic}"
 Target Language: "${targetLanguage}"
@@ -96,35 +98,52 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
   ]
 }`;
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: userPrompt,
-        config: {
-          systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
-          tools: [{ googleSearch: {} }],
-          temperature: 0.2,
-        },
-      });
+        let response;
+        try {
+          response = await ai.models.generateContent({
+            model,
+            contents: userPrompt,
+            config: {
+              systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
+              tools: [{ googleSearch: {} }],
+              temperature: 0.2,
+            },
+          });
+        } catch {
+          // Retry without googleSearch tool in case the user's API key tier restricts search grounding
+          response = await ai.models.generateContent({
+            model,
+            contents: userPrompt,
+            config: {
+              systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
+              temperature: 0.2,
+            },
+          });
+        }
 
-      const rawText = response.text || "";
-      const parsed = extractJsonFromText<FeasibilityResult>(rawText);
-      const groundingLinks = extractGroundingLinks(response);
+        const rawText = response.text || "";
+        const parsed = extractJsonFromText<FeasibilityResult>(rawText);
+        const groundingLinks = extractGroundingLinks(response);
 
-      if (groundingLinks.length > 0) {
-        const existingUrls = new Set((parsed.authoritativeSources || []).map((s) => s.url));
-        for (const link of groundingLinks) {
-          if (!existingUrls.has(link.url)) {
-            parsed.authoritativeSources = parsed.authoritativeSources || [];
-            parsed.authoritativeSources.push({
-              title: link.title,
-              url: link.url,
-              snippet: "Verified via Google Search Grounding",
-            });
+        if (groundingLinks.length > 0) {
+          const existingUrls = new Set((parsed.authoritativeSources || []).map((s) => s.url));
+          for (const link of groundingLinks) {
+            if (!existingUrls.has(link.url)) {
+              parsed.authoritativeSources = parsed.authoritativeSources || [];
+              parsed.authoritativeSources.push({
+                title: link.title,
+                url: link.url,
+                snippet: "Verified via Google Search Grounding",
+              });
+            }
           }
         }
-      }
 
-      return NextResponse.json({ result: parsed, mode: "gemini_live" });
+        return NextResponse.json({ result: parsed, mode: "gemini_live" });
+      } catch (gemErr: any) {
+        console.warn("Gemini API call failed in feasibility, falling back to live scraper:", gemErr?.message);
+        geminiWarning = gemErr?.message || "Gemini API error — used live scraper fallback";
+      }
     }
 
     // Autonomous Live Scraping Mode (Works immediately out-of-the-box with ZERO API Key required!)

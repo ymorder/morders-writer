@@ -115,26 +115,52 @@ Return ONLY a valid JSON object matching this exact schema:
   }
 }`;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: userPrompt,
-      config: {
-        systemInstruction: EDITOR_SYSTEM_PROMPT,
-        tools: [{ googleSearch: {} }],
-        temperature: 0.25,
-      },
-    });
+    try {
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: EDITOR_SYSTEM_PROMPT,
+            tools: [{ googleSearch: {} }],
+            temperature: 0.25,
+          },
+        });
+      } catch {
+        response = await ai.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: EDITOR_SYSTEM_PROMPT,
+            temperature: 0.25,
+          },
+        });
+      }
 
-    const rawText = response.text || "";
-    const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
+      const rawText = response.text || "";
+      const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
 
-    if (parsed.editedPublishReadyMarkdown) {
-      parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
+      if (parsed.editedPublishReadyMarkdown) {
+        parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
+      }
+
+      return NextResponse.json({ result: parsed, mode: "gemini_live" });
+    } catch (gemErr: any) {
+      console.warn("Editor Gemini API error, using autonomous fallback:", gemErr?.message);
+      const fallbackEdit = buildAutonomousEditorPackage({
+        submittedText,
+        taskCard,
+        standingRules,
+        includeFullEditedVersion,
+      });
+      return NextResponse.json({
+        result: fallbackEdit,
+        mode: "autonomous_live_scraper",
+      });
     }
-
-    return NextResponse.json({ result: parsed, mode: "gemini_live" });
   } catch (error: any) {
-    console.error("Editor API error:", error);
+    console.warn("Editor API error:", error?.message);
     return NextResponse.json(
       { error: error?.message || "Failed to execute editorial analysis." },
       { status: 500 }

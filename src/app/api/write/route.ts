@@ -165,28 +165,57 @@ Return ONLY a valid JSON object matching this exact structure:
   }
 }`;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: userPrompt,
-      config: {
-        systemInstruction: WRITER_SYSTEM_PROMPT,
-        tools: [{ googleSearch: {} }],
-        temperature: 0.3,
-      },
-    });
+    try {
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: WRITER_SYSTEM_PROMPT,
+            tools: [{ googleSearch: {} }],
+            temperature: 0.3,
+          },
+        });
+      } catch {
+        response = await ai.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: WRITER_SYSTEM_PROMPT,
+            temperature: 0.3,
+          },
+        });
+      }
 
-    const rawText = response.text || "";
-    const parsed = extractJsonFromText<WriterOutputPackage>(rawText);
+      const rawText = response.text || "";
+      const parsed = extractJsonFromText<WriterOutputPackage>(rawText);
 
-    if (parsed.stage4FullArticleMarkdown) {
-      const { cleaned } = sanitizeArticleText(parsed.stage4FullArticleMarkdown);
-      parsed.stage4FullArticleMarkdown = cleaned;
+      if (parsed.stage4FullArticleMarkdown) {
+        const { cleaned } = sanitizeArticleText(parsed.stage4FullArticleMarkdown);
+        parsed.stage4FullArticleMarkdown = cleaned;
+      }
+
+      const groundingUrls = extractGroundingLinks(response);
+      parsed.groundingUrls = groundingUrls;
+
+      return NextResponse.json({ result: parsed, mode: "gemini_live" });
+    } catch (gemErr: any) {
+      console.warn("Writer Gemini API error, using autonomous live scraper fallback:", gemErr?.message);
+      const fallbackPkg = buildAutonomousWriterPackage({
+        topic,
+        targetLanguage,
+        targetCountry,
+        targetAudience,
+        websiteBrand,
+        wordCount: Number(wordCount) || 1800,
+        feasibilityContext,
+      });
+      return NextResponse.json({
+        result: fallbackPkg,
+        mode: "autonomous_live_scraper",
+      });
     }
-
-    const groundingUrls = extractGroundingLinks(response);
-    parsed.groundingUrls = groundingUrls;
-
-    return NextResponse.json({ result: parsed, mode: "gemini_live" });
   } catch (error: any) {
     console.error("Writer API error:", error);
     return NextResponse.json(
