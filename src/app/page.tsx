@@ -317,9 +317,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#08090d] text-slate-100">
+    <div
+      style={{ backgroundColor: "#050507", color: "#f8fafc" }}
+      className="min-h-screen flex flex-col bg-[#050507] text-slate-100"
+    >
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#08090d]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-zinc-800/80 bg-[#050507]/95 backdrop-blur-xl">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-[1px] shadow-lg shadow-indigo-500/20">
@@ -395,11 +398,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 apiKey
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
+                  : "bg-zinc-900 border-zinc-700 text-zinc-200 hover:bg-zinc-800"
               }`}
             >
-              <KeyRound className="w-3.5 h-3.5" />
-              {apiKey ? "Gemini Key Active" : "Live Scraper Active (Add Key Optional)"}
+              <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+              {apiKey ? "Gemini Key Active" : "Set Gemini Key (Optional)"}
             </button>
           </div>
         </div>
@@ -441,7 +444,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         {/* LEFT COLUMN: Mission Control & Inputs (4 Cols) */}
         <div className="lg:col-span-4 space-y-5">
           {mode !== "editor" ? (
-            <div className="rounded-2xl border border-slate-800/90 bg-[#0d1017] p-5 shadow-xl space-y-4">
+            <div className="rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-5 shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Compass className="w-4 h-4 text-indigo-400" />
@@ -602,7 +605,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             </div>
           ) : (
             /* STANDALONE EDITOR INPUT PANEL */
-            <div className="rounded-2xl border border-slate-800/90 bg-[#0d1017] p-5 shadow-xl space-y-4">
+            <div className="rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-5 shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -685,7 +688,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           )}
 
           {/* Live Pipeline Telemetry Stepper */}
-          <div className="rounded-2xl border border-slate-800/80 bg-[#0d1017]/90 p-5 space-y-3">
+          <div className="rounded-2xl border border-slate-800/80 bg-[#0a0b0e]/90 p-5 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Autonomous Pipeline Status
@@ -873,7 +876,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           </div>
 
           {/* TAB CONTENT AREA */}
-          <div className="flex-1 rounded-2xl border border-slate-800/90 bg-[#0d1017] p-6 shadow-2xl overflow-y-auto max-h-[calc(100vh-180px)]">
+          <div className="flex-1 rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-6 shadow-2xl overflow-y-auto max-h-[calc(100vh-180px)]">
             {/* TAB 1: FINAL POLISHED PUBLISH-READY MASTERPIECE */}
             {activeTab === "final_polished" && (
               <div className="space-y-6">
@@ -963,7 +966,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 )}
 
                 {/* Rendered Final Article */}
-                <div className="rounded-2xl bg-[#090b10] border border-slate-800/80 p-6 sm:p-8">
+                <div className="rounded-2xl bg-[#050507] border border-slate-800/80 p-6 sm:p-8">
                   <MarkdownRenderer
                     content={
                       editorOutput?.editedPublishReadyMarkdown ||
@@ -1342,7 +1345,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   </button>
                 </div>
 
-                <div className="rounded-2xl bg-[#090b10] border border-slate-800/80 p-6">
+                <div className="rounded-2xl bg-[#050507] border border-slate-800/80 p-6">
                   <MarkdownRenderer
                     content={writerOutput.stage4FullArticleMarkdown}
                   />
