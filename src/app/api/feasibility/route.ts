@@ -65,9 +65,12 @@ Target Audience (optional): "${targetAudience || "Not specified - infer sensible
 Website/Brand Tone (optional): "${websiteBrand || "Not specified - infer sensible default"}"
 Target Word Count (optional): ${wordCount || 1800}
 
-Pre-Fetched Live Signals from Google News & Reddit to incorporate:
+Pre-Fetched Live Signals from Google News & Reddit (including exact Reddit usernames and what they wrote):
 - Google News: ${JSON.stringify(liveSignals.googleNews.slice(0, 5))}
-- Reddit Threads: ${JSON.stringify(liveSignals.redditThreads.slice(0, 5))}
+- Reddit Threads & User Comments: ${JSON.stringify(liveSignals.redditThreads.slice(0, 4))}
+
+CRITICAL REDDIT RULE:
+When populating "redditInsights" (and later in the article), ALWAYS include the exact Reddit username (e.g. "u/username in r/subreddit") and quote/summarize what that specific user wrote (either from their post selfText or topComments), plus the thread URL in authoritativeSources. Never insert generic unattributed questions!
 
 Perform additional live searches across Google News, Reddit, X (Twitter), and official sources, and return a single valid JSON object with the exact following keys (write the summaries and verdict in "${targetLanguage}"):
 {
@@ -88,9 +91,9 @@ Perform additional live searches across Google News, Reddit, X (Twitter), and of
     "Specific recent news/development #3 with dates/facts"
   ],
   "redditInsights": [
-    "Real-world user insight, common question, or edge case surfaced on Reddit #1",
-    "Reddit community consensus or debate #2",
-    "Practical tip or warning mentioned by practitioners on Reddit #3"
+    "u/username (in r/subreddit): Exact summary/quote of what this user wrote and their practical insight #1",
+    "u/username2 (in r/subreddit): Exact summary/quote of what this user wrote #2",
+    "u/username3 (in r/subreddit): Exact summary/quote of what this user wrote #3"
   ],
   "xTwitterInsights": [
     "Real-time expert take, breaking sentiment, or industry commentary from X (Twitter) #1",

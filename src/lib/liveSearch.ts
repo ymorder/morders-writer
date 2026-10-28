@@ -1,15 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+export interface RedditCommentQuote {
+  author: string; // e.g., u/username
+  body: string;
+  score: number;
+}
+
+export interface RedditThreadSignal {
+  title: string;
+  subreddit: string;
+  author: string; // e.g., u/post_author
+  url: string;
+  score: number;
+  numComments: number;
+  selfText: string;
+  topComments: RedditCommentQuote[];
+}
 
 export interface LiveFetchedSignals {
   googleNews: { title: string; url: string; date: string; source: string }[];
-  redditThreads: {
-    title: string;
-    subreddit: string;
-    url: string;
-    score: number;
-    numComments: number;
-    snippet: string;
-  }[];
+  redditThreads: RedditThreadSignal[];
   xAndWebMentions: { title: string; url: string; snippet: string }[];
 }
 
@@ -40,7 +48,7 @@ export async function fetchLiveMultiSourceSignals(
   const ceid = isHebrew ? "IL:he" : "US:en";
 
   const googleNews: LiveFetchedSignals["googleNews"] = [];
-  const redditThreads: LiveFetchedSignals["redditThreads"] = [];
+  const redditThreads: RedditThreadSignal[] = [];
   const xAndWebMentions: LiveFetchedSignals["xAndWebMentions"] = [];
 
   // 1. Fetch Live Google News RSS
@@ -77,11 +85,11 @@ export async function fetchLiveMultiSourceSignals(
     console.warn("Google News RSS fetch warning:", e);
   }
 
-  // 2. Fetch Live Reddit Search JSON API
+  // 2. Fetch Live Reddit Search JSON API + Top User Comments with u/username
   try {
     const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(
       cleanTopic
-    )}&sort=relevance&t=year&limit=6`;
+    )}&sort=relevance&t=year&limit=4`;
     const res = await fetch(redditUrl, {
       headers: {
         "User-Agent": "web:morders-writer:v1.0.0 (by /u/morders_writer)",
@@ -92,16 +100,56 @@ export async function fetchLiveMultiSourceSignals(
     if (res.ok) {
       const data = await res.json();
       const children = data?.data?.children || [];
+
       for (const child of children) {
         const post = child?.data;
-        if (post && post.title) {
+        if (post && post.title && post.permalink) {
+          const topComments: RedditCommentQuote[] = [];
+
+          // Fetch top comments from the thread permalink to get exact u/username and what they wrote
+          try {
+            const threadJsonUrl = `https://www.reddit.com${post.permalink}.json?limit=6&sort=top`;
+            const cRes = await fetch(threadJsonUrl, {
+              headers: {
+                "User-Agent": "web:morders-writer:v1.0.0 (by /u/morders_writer)",
+                Accept: "application/json",
+              },
+            });
+            if (cRes.ok) {
+              const cData = await cRes.json();
+              const commentListing = cData?.[1]?.data?.children || [];
+              for (const cItem of commentListing) {
+                const c = cItem?.data;
+                if (
+                  c &&
+                  c.body &&
+                  c.author &&
+                  c.author !== "AutoModerator" &&
+                  c.body !== "[deleted]" &&
+                  c.body !== "[removed]" &&
+                  topComments.length < 2
+                ) {
+                  topComments.push({
+                    author: `u/${c.author}`,
+                    body: String(c.body).replace(/\s+/g, " ").trim().slice(0, 320),
+                    score: c.score || 1,
+                  });
+                }
+              }
+            }
+          } catch {
+            // ignore individual comment thread failure
+          }
+
           redditThreads.push({
             title: post.title,
             subreddit: post.subreddit_name_prefixed || `r/${post.subreddit}`,
+            author: post.author ? `u/${post.author}` : "u/redditor",
             url: `https://www.reddit.com${post.permalink}`,
             score: post.score || 0,
             numComments: post.num_comments || 0,
-            snippet: (post.selftext || "").slice(0, 220).replace(/\s+/g, " ").trim(),
+            selfText: (post.selftext || "").replace(/\s+/g, " ").trim().slice(0, 350),
+            topComments,
           });
         }
       }
@@ -110,9 +158,9 @@ export async function fetchLiveMultiSourceSignals(
     console.warn("Reddit API fetch warning:", e);
   }
 
-  // 3. Fetch X/Twitter & Industry Pulse via Google News RSS site:x.com / expert commentary
+  // 3. Fetch X/Twitter & Industry Pulse
   try {
-    const xQuery = `${cleanTopic} (site:x.com OR site:twitter.com OR "on X" OR "analyst" OR "benchmark")`;
+    const xQuery = `${cleanTopic} (site:x.com OR site:twitter.com OR "on X" OR "analyst")`;
     const xRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(
       xQuery
     )}&hl=${hl}&gl=${gl}&ceid=${ceid}`;

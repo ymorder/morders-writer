@@ -22,8 +22,8 @@ import {
   Scale,
   Zap,
   RefreshCw,
-  BookOpen,
   Sliders,
+  UserCheck,
 } from "lucide-react";
 import {
   FeasibilityResult,
@@ -35,6 +35,7 @@ import {
   DEMO_WRITER_PACKAGE,
   DEMO_EDITOR_PACKAGE,
 } from "@/lib/demoData";
+import { TARGET_LANGUAGES, TARGET_MARKETS } from "@/lib/constants";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 type StudioMode = "autonomous" | "writer" | "editor";
@@ -56,7 +57,7 @@ type OutputTab =
   | "stage7_8_9_audit"
   | "editor_review";
 
-export default function NexusStudioPage() {
+export default function MordersWriterPage() {
   // Mode & Settings
   const [mode, setMode] = useState<StudioMode>("autonomous");
   const [apiKey, setApiKey] = useState<string>("");
@@ -67,15 +68,15 @@ export default function NexusStudioPage() {
   const [topic, setTopic] = useState<string>(
     "Generative Engine Optimization (GEO) Strategy & RAG Citation Mechanics in 2026"
   );
-  const [targetLanguage, setTargetLanguage] = useState<string>("English");
-  const [targetCountry, setTargetCountry] = useState<string>("United States");
+  const [targetLanguage, setTargetLanguage] = useState<string>("Hebrew (עברית)");
+  const [targetCountry, setTargetCountry] = useState<string>("Israel (ישראל)");
   const [targetAudience, setTargetAudience] = useState<string>("");
   const [websiteBrand, setWebsiteBrand] = useState<string>("");
   const [wordCount, setWordCount] = useState<number>(1800);
 
   // Standing Rules & Editor Inputs
   const [standingRules, setStandingRules] = useState<string>(
-    "Never use em-dashes (—). Back up claims with reconcilable numbers. Avoid AI clichés ('delve', 'unlock', 'game changer', 'seamless')."
+    "ללא מקף ארוך (—). גבה כל טענה במספרים מתכנסים. הימנע מקלישאות AI ('לצלול', 'הסיבה לכך פשוטה', 'delve', 'unlock', 'game changer'). ציין תמיד שם משתמש מ-Reddit (u/...) וציטוט מדויק של מה שכתב."
   );
   const [editorText, setEditorText] = useState<string>("");
   const [taskCard, setTaskCard] = useState<string>("");
@@ -86,7 +87,7 @@ export default function NexusStudioPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [clarificationPrompt, setClarificationPrompt] = useState<string | null>(null);
 
-  // Results State (Initialized with rich verified showcase so user sees sleek UI immediately)
+  // Results State
   const [feasibility, setFeasibility] = useState<FeasibilityResult | null>(
     DEMO_FEASIBILITY
   );
@@ -101,7 +102,9 @@ export default function NexusStudioPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem("morders_writer_api_key") || localStorage.getItem("nexus_gemini_api_key");
+    const savedKey =
+      localStorage.getItem("morders_writer_api_key") ||
+      localStorage.getItem("nexus_gemini_api_key");
     if (savedKey) setApiKey(savedKey);
   }, []);
 
@@ -125,7 +128,7 @@ export default function NexusStudioPage() {
       setShowKeyModal(true);
       setPhase("error");
       setErrorMessage(
-        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini (ולא תבנית דמו), אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה (ניתן להפיק בחינם ב-aistudio.google.com/app/apikey)."
+        "כדי לבצע מחקר וכתיבה אמיתיים ב-Gemini 2.5 Pro, אנא הדבק מפתח Gemini API בתיבה שנפתחה למעלה."
       );
       return;
     }
@@ -133,7 +136,7 @@ export default function NexusStudioPage() {
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
-        "Input Handling Rule #1: Please specify both Target Language and Target Country/Market before we begin live Google, Reddit, and X research."
+        "נא לבחור שפת יעד (Target Language) ומדינת יעד (Target Market) מתוך הרשימה הנפתחת לפני תחילת המחקר."
       );
       return;
     }
@@ -182,12 +185,11 @@ export default function NexusStudioPage() {
       return;
     }
 
-    // Rule #1: Check Target Language and Target Country/Market
     if (!apiKey.trim()) {
       setShowKeyModal(true);
       setPhase("error");
       setErrorMessage(
-        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini (ולא תבנית דמו), אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה (ניתן להפיק בחינם ב-aistudio.google.com/app/apikey)."
+        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini 2.5 Pro, אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה."
       );
       return;
     }
@@ -195,13 +197,13 @@ export default function NexusStudioPage() {
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
-        "Input Handling Check: Target Language and Target Country/Market are missing. Please fill them in once below before starting."
+        "נא לבחור שפת יעד ומדינת יעד מתוך הרשימה הנפתחת לפני תחילת התהליך."
       );
       return;
     }
 
     try {
-      // Step 1: Live Multi-Source Intelligence (Google News, Reddit, X)
+      // Step 1: Live Multi-Source Intelligence (Google News, Reddit with u/username, X)
       setPhase("researching");
       setActiveTab("intelligence");
 
@@ -264,7 +266,7 @@ Target Market: ${targetCountry}
 Primary Keyword: ${writeResult.stage1CompetitorResearch?.primaryKeyword || topic}
 Target Audience: ${writeResult.assumptions?.targetAudience || targetAudience}
 Brand/Platform: ${writeResult.assumptions?.websiteBrand || websiteBrand}
-Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified math, and quote-ready H2 openings.`;
+Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified math, exact Reddit u/username attributions, and quote-ready H2 openings.`;
 
       const editRes = await fetch("/api/edit", {
         method: "POST",
@@ -291,9 +293,18 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
   };
 
   const handleExecuteStandaloneEditor = async () => {
+    if (!apiKey.trim()) {
+      setShowKeyModal(true);
+      setPhase("error");
+      setErrorMessage(
+        "כדי להפעיל את העורך המקצועי ב-Gemini 2.5 Pro, אנא הדבק מפתח Gemini API בתיבה שנפתחה למעלה."
+      );
+      return;
+    }
+
     if (!editorText.trim()) {
       setPhase("error");
-      setErrorMessage("Please paste the text you want the Editor to analyze.");
+      setErrorMessage("אנא הדבק את הטקסט שברצונך שהעורך ינתח ויערוך.");
       return;
     }
 
@@ -330,47 +341,47 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         DEMO_WRITER_PACKAGE.stage4FullArticleMarkdown
     );
     setTaskCard(
-      "Target Audience: Enterprise Marketing Leaders\nGoal: Audit for factual accuracy, GEO quote-readiness, and native flow."
+      "קהל יעד: מנהלי שיווק ומקבלי החלטות\nמטרה: בדיקת דיוק עובדתי, מוכנות לציטוט במנועי AI (GEO) וזרימה טבעית בשפת המקור."
     );
   };
 
   return (
     <div
       style={{ backgroundColor: "#050507", color: "#f8fafc" }}
-      className="min-h-screen flex flex-col bg-[#050507] text-slate-100"
+      className="min-h-screen flex flex-col bg-[#050507] text-zinc-100"
     >
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar - Spacious & Clean */}
       <header className="sticky top-0 z-30 border-b border-zinc-800/80 bg-[#050507]/95 backdrop-blur-xl">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-[1px] shadow-lg shadow-indigo-500/20">
-              <div className="w-full h-full bg-[#0b0d14] rounded-[11px] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+        <div className="max-w-[1680px] mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 p-[1px] shadow-lg">
+              <div className="w-full h-full bg-[#0a0b0e] rounded-[15px] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-tight text-white text-lg">
+              <div className="flex items-center gap-3">
+                <span className="font-bold tracking-tight text-white text-xl">
                   Morder&apos;s Writer
                 </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                  SEO + GEO + Editorial AI
+                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700/80">
+                  SEO • GEO • Editorial Studio
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                Autonomous Web, Reddit & X Grounded Content Engine
+              <p className="text-xs text-zinc-400 hidden sm:block mt-0.5">
+                Autonomous Google News, Reddit (u/user quotes) &amp; X Grounded Content Engine
               </p>
             </div>
           </div>
 
           {/* Mode Switcher */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center bg-[#0c0d12] p-1.5 rounded-2xl border border-zinc-800/90">
             <button
               onClick={() => setMode("autonomous")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 mode === "autonomous"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
@@ -378,10 +389,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             </button>
             <button
               onClick={() => setMode("writer")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 mode === "writer"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <PenTool className="w-3.5 h-3.5" />
@@ -389,10 +400,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             </button>
             <button
               onClick={() => setMode("editor")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 mode === "editor"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -401,59 +412,63 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           </div>
 
           {/* Right Controls: Model & API Key */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+              className="bg-[#0c0d12] border border-zinc-800 rounded-xl px-3.5 py-2 text-xs font-medium text-zinc-200 focus:outline-none focus:border-zinc-500"
             >
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Recommended — Deepest Writing Quality)</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Faster)</option>
+              <option value="gemini-2.5-pro">
+                Gemini 2.5 Pro (Recommended — Deep Writing)
+              </option>
+              <option value="gemini-2.5-flash">
+                Gemini 2.5 Flash (Fast Research)
+              </option>
             </select>
 
             <button
               onClick={() => setShowKeyModal(!showKeyModal)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
                 apiKey
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 animate-pulse"
+                  : "bg-amber-500/15 border-amber-500/40 text-amber-200 hover:bg-amber-500/25"
               }`}
             >
               <KeyRound className="w-3.5 h-3.5" />
-              {apiKey ? "Gemini Key Active" : "הכנס Gemini API Key (חובה לכתיבה חיה)"}
+              {apiKey ? "Gemini Key Active" : "הגדר Gemini API Key"}
             </button>
           </div>
         </div>
 
         {/* Collapsible API Key Bar */}
         {showKeyModal && (
-          <div className="border-t border-indigo-500/30 bg-slate-900/95 px-6 py-3">
-            <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
-              <div className="text-xs text-slate-300 flex items-center gap-3">
+          <div className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4">
+            <div className="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-4">
+              <div className="text-xs text-zinc-300 flex items-center gap-3">
                 <span>
-                  <strong className="text-white">Gemini API Key:</strong> הדבק כאן מפתח מ-Google AI Studio כדי להפעיל מחקר וכתיבה אמיתית ברמת קצה.
+                  <strong className="text-white">Gemini API Key:</strong> הדבק מפתח מ-Google AI Studio כדי להפעיל את מודל הכתיבה והמחקר המלא (נשמר אוטומטית בדפדפן).
                 </span>
                 <a
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:text-white font-semibold inline-flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 hover:bg-zinc-700 font-medium inline-flex items-center gap-1.5 transition-colors"
                 >
-                  קבל מפתח חינם תוך 10 שניות
+                  הפקת מפתח חינם ב-Google AI Studio
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
-              <div className="flex items-center gap-2 flex-1 max-w-md">
+              <div className="flex items-center gap-2.5 flex-1 max-w-md">
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => handleSaveApiKey(e.target.value)}
                   placeholder="AIzaSy..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-white"
                 />
                 <button
                   onClick={() => setShowKeyModal(false)}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-500"
+                  className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
                 >
                   שמור
                 </button>
@@ -463,130 +478,145 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         )}
       </header>
 
-      {/* Main Workspace Container */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Workspace Container - Extra Spacious Breathing Room */}
+      <main className="flex-1 max-w-[1680px] w-full mx-auto px-6 lg:px-10 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN: Mission Control & Inputs (4 Cols) */}
-        <div className="lg:col-span-4 space-y-5">
+        <div className="lg:col-span-4 space-y-6">
           {mode !== "editor" ? (
-            <div className="rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-5 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-indigo-400" />
-                  Topic & Market Configuration
+            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+                <h2 className="text-base font-bold text-white flex items-center gap-2.5">
+                  <Compass className="w-4 h-4 text-zinc-300" />
+                  הגדרות נושא, שפה ושוק יעד
                 </h2>
-                <span className="text-[11px] text-slate-400">
-                  Live Grounded
+                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-zinc-900 text-zinc-400 border border-zinc-800">
+                  9-Stage Pipeline
                 </span>
               </div>
 
               {/* Topic */}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Subject / Topic / Primary Query *
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-zinc-100">
+                  נושא המאמר / ביטוי מפתח ראשי *
                 </label>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  הזן את הנושא, השאלה או תחום המומחיות שעליו נבצע מחקר ב-Google, ב-Reddit וברשת X.
+                </p>
                 <textarea
                   rows={3}
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g., 2026 EU AI Act Compliance for FinTech SaaS, or Tax-Loss Harvesting Mechanics..."
-                  className="w-full rounded-xl bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  placeholder="לדוגמה: מיסוי קרנות השתלמות והשקעות אלטרנטיביות ב-2026..."
+                  className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors leading-relaxed"
                 />
               </div>
 
-              {/* Target Language & Country (Mandatory per Input Handling Rule #1) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Target Language *
+              {/* Target Language & Country DROPDOWNS (Full Lists) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-zinc-100">
+                    שפת כתיבה (Language) *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={targetLanguage}
                     onChange={(e) => setTargetLanguage(e.target.value)}
-                    placeholder="e.g., English, Hebrew, Spanish"
-                    className="w-full rounded-xl bg-slate-950/90 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  />
+                    className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  >
+                    {TARGET_LANGUAGES.map((lang) => (
+                      <option key={lang.value} value={lang.value} className="bg-[#0b0c10] text-white">
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Target Country/Market *
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-zinc-100">
+                    מדינת / שוק יעד (Market) *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={targetCountry}
                     onChange={(e) => setTargetCountry(e.target.value)}
-                    placeholder="e.g., United States, Israel, UK"
-                    className="w-full rounded-xl bg-slate-950/90 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  />
+                    className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  >
+                    {TARGET_MARKETS.map((mkt) => (
+                      <option key={mkt.value} value={mkt.value} className="bg-[#0b0c10] text-white">
+                        {mkt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               {/* Optional Inputs (Auto-assumed if left blank per Rule #2) */}
-              <div className="pt-2 border-t border-slate-800/70 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                    Optional Parameters (Auto-Assumed if Blank)
+              <div className="pt-4 border-t border-zinc-800/80 space-y-4">
+                <div>
+                  <span className="text-xs font-semibold text-zinc-200 block">
+                    פרמטרים משלימים (אופציונלי — יושלמו אוטומטית תחת &apos;הנחות עבודה&apos; אם יישארו ריקים)
                   </span>
                 </div>
 
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">
-                    Target Audience
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    קהל יעד (Target Audience)
                   </label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="Leave blank for sensible default..."
-                    className="w-full rounded-xl bg-slate-950/60 border border-slate-800/80 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="למשל: סמנכ״לי כספים, יזמים, משקיעים פרטיים..."
+                    className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-xs text-slate-400 mb-1">
-                      Website / Brand Tone
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">
+                      אתר / מותג וטון כתיבה
                     </label>
                     <input
                       type="text"
                       value={websiteBrand}
                       onChange={(e) => setWebsiteBrand(e.target.value)}
-                      placeholder="e.g., B2B FinTech Authority"
-                      className="w-full rounded-xl bg-slate-950/60 border border-slate-800/80 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      placeholder="למשל: מגזין כלכלי סמכותי"
+                      className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">
-                      Word Count
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">
+                      כמות מילים
                     </label>
                     <input
                       type="number"
                       step={100}
                       value={wordCount}
                       onChange={(e) => setWordCount(Number(e.target.value))}
-                      className="w-full rounded-xl bg-slate-950/60 border border-slate-800/80 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-3.5 py-3 text-xs text-white focus:outline-none focus:border-zinc-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Standing Agency Rules */}
-              <div className="pt-2 border-t border-slate-800/70">
-                <label className="block text-xs font-medium text-slate-300 mb-1 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                  Standing Client / Agency Rules
+              {/* Standing Agency Rules - High Contrast & Readable */}
+              <div className="pt-4 border-t border-zinc-800/80 space-y-2">
+                <label className="block text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-zinc-300" />
+                  חוקי עבודה קבועים והנחיות סוכנות (Standing Rules)
                 </label>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  כללים אלו נאכפים בכל שלבי הכתיבה והעריכה (איסור מקפים ארוכים, איסור קלישאות AI, חובת ציון שם משתמש מ-Reddit).
+                </p>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={standingRules}
                   onChange={(e) => setStandingRules(e.target.value)}
-                  placeholder="House style, banned terms, regulatory disclaimers..."
-                  className="w-full rounded-xl bg-slate-950/60 border border-slate-800/80 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  placeholder="חוקי בית, מילים אסורות, דרישות רגולטוריות..."
+                  className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-zinc-100 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 space-y-2.5">
+              <div className="pt-3 space-y-3">
                 <button
                   onClick={handleExecutePipeline}
                   disabled={
@@ -594,21 +624,21 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     phase === "writing" ||
                     phase === "editing"
                   }
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white font-semibold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  className="w-full py-4 px-5 rounded-2xl bg-white hover:bg-zinc-200 text-black font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2.5 transition-all disabled:opacity-50"
                 >
                   {phase === "researching" ||
                   phase === "writing" ||
                   phase === "editing" ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      Running {phase.toUpperCase()} Stage...
+                      מבצע כעת שלב: {phase.toUpperCase()}...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
                       {mode === "autonomous"
-                        ? "Launch Autonomous Research → Write → Edit"
-                        : "Run 9-Stage SEO & GEO Writer"}
+                        ? "הפעל תהליך אוטונומי מלא (מחקר ← כתיבה ← עריכה)"
+                        : "הפעל כותב 9 שלבים (SEO + GEO)"}
                     </>
                   )}
                 </button>
@@ -620,91 +650,94 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     phase === "writing" ||
                     phase === "editing"
                   }
-                  className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-medium flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-3 px-4 rounded-2xl bg-[#12141c] hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
                 >
-                  <Search className="w-3.5 h-3.5 text-indigo-400" />
-                  Pre-Check Topic Feasibility Only (Google, Reddit & X)
+                  <Search className="w-3.5 h-3.5 text-zinc-300" />
+                  בדיקת היתכנות ומחקר Reddit / Google / X בלבד
                 </button>
               </div>
             </div>
           ) : (
             /* STANDALONE EDITOR INPUT PANEL */
-            <div className="rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-5 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+                <h2 className="text-base font-bold text-white flex items-center gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Content Editor & Text Analyst
+                  עורך תוכן ומנתח טקסט (Agency Editor)
                 </h2>
                 <button
                   onClick={loadSampleIntoStandaloneEditor}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 underline"
+                  className="text-xs text-zinc-300 hover:text-white underline font-medium"
                 >
-                  Load Current Article
+                  טען מאמר נוכחי לבדיקה
                 </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Submitted Text (Any Language, Auto-Detected) *
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-zinc-100">
+                  טקסט לבדיקה ועריכה (זיהוי שפה וכיווניות אוטומטי) *
                 </label>
                 <textarea
                   rows={8}
                   value={editorText}
                   onChange={(e) => setEditorText(e.target.value)}
-                  placeholder="Paste client article, landing page, social post, or GEO draft in English, Hebrew, Arabic, Spanish..."
-                  className="w-full rounded-xl bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  placeholder="הדבק כאן מאמר, דף נחיתה, פוסט או טיוטת GEO בעברית, אנגלית או כל שפה אחרת..."
+                  className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3.5 text-xs text-white placeholder-zinc-500 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Task Card (Optional — Overrides Defaults)
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-zinc-100">
+                  כרטיס משימה — Task Card (אופציונלי — גובר על ברירות המחדל)
                 </label>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  הגדר מילת מפתח, קהל יעד, פלטפורמה או אורך רצוי. אם יישאר ריק, העורך יסיק זאת מהטקסט.
+                </p>
                 <textarea
                   rows={3}
                   value={taskCard}
                   onChange={(e) => setTaskCard(e.target.value)}
-                  placeholder="Target keyword, target audience, platform, localization instructions, or leave empty to auto-infer..."
-                  className="w-full rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  placeholder="מילת מפתח, קהל יעד, פלטפורמה, הוראות תרגום/לוקליזציה..."
+                  className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-zinc-100 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Standing Client / Agency Rules
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-zinc-100">
+                  חוקי לקוח / סוכנות קבועים (Standing Rules)
                 </label>
                 <textarea
                   rows={2}
                   value={standingRules}
                   onChange={(e) => setStandingRules(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-zinc-100 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2.5 text-xs text-zinc-200 cursor-pointer pt-1">
                 <input
                   type="checkbox"
                   checked={includeEditedVersion}
                   onChange={(e) => setIncludeEditedVersion(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded border-zinc-700 bg-zinc-900 text-white focus:ring-0"
                 />
-                Generate full edited, publish-ready version alongside analysis
+                ייצר גם גרסה ערוכה ומוכנה לפרסום (בנוסף לדוח הביקורת וההשוואה)
               </label>
 
               <button
                 onClick={handleExecuteStandaloneEditor}
                 disabled={phase === "editing"}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-4 px-5 rounded-2xl bg-white hover:bg-zinc-200 text-black font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {phase === "editing" ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Running Priority-Ordered Editorial Audit...
+                    מבצע ניתוח ועריכה לפי סדר עדיפויות 1–5...
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    Run Full Editorial Analysis & Fact Audit
+                    הפעל ניתוח עריכה ואימות עובדות
                   </>
                 )}
               </button>
@@ -712,57 +745,61 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           )}
 
           {/* Live Pipeline Telemetry Stepper */}
-          <div className="rounded-2xl border border-slate-800/80 bg-[#0a0b0e]/90 p-5 space-y-3">
+          <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Autonomous Pipeline Status
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                סטטוס מערכת אוטונומית
               </span>
               <span
-                className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
                   phase === "completed"
                     ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                     : phase === "error" || phase === "clarifying"
                     ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                    : "bg-indigo-500/20 text-indigo-300 animate-pulse"
+                    : "bg-white/15 text-white animate-pulse"
                 }`}
               >
                 {phase.toUpperCase()}
               </span>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2.5 text-xs">
               <div
-                className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
                   phase === "researching"
-                    ? "bg-indigo-500/15 border-indigo-500/40 text-white"
+                    ? "bg-zinc-800 border-zinc-600 text-white"
                     : feasibility
-                    ? "bg-slate-900/60 border-slate-800 text-slate-300"
-                    : "bg-slate-950/40 border-slate-900 text-slate-500"
+                    ? "bg-[#050507] border-zinc-800/90 text-zinc-200"
+                    : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Globe className="w-4 h-4 text-indigo-400" />
-                  <span>1. Live Web, Reddit & X Feasibility</span>
+                <div className="flex items-center gap-3">
+                  <Globe className="w-4 h-4 text-zinc-300" />
+                  <span className="font-medium">
+                    1. מחקר חדשות, Reddit (עם שם משתמש) ו-X
+                  </span>
                 </div>
                 {feasibility && (
-                  <span className="text-[11px] font-semibold text-emerald-400">
-                    {feasibility.confidenceScore}% Score
+                  <span className="text-xs font-bold text-emerald-400">
+                    {feasibility.confidenceScore}%
                   </span>
                 )}
               </div>
 
               <div
-                className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
                   phase === "writing"
-                    ? "bg-indigo-500/15 border-indigo-500/40 text-white"
+                    ? "bg-zinc-800 border-zinc-600 text-white"
                     : writerOutput
-                    ? "bg-slate-900/60 border-slate-800 text-slate-300"
-                    : "bg-slate-950/40 border-slate-900 text-slate-500"
+                    ? "bg-[#050507] border-zinc-800/90 text-zinc-200"
+                    : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Layers className="w-4 h-4 text-purple-400" />
-                  <span>2. 9-Stage SEO & GEO Writer</span>
+                <div className="flex items-center gap-3">
+                  <Layers className="w-4 h-4 text-zinc-300" />
+                  <span className="font-medium">
+                    2. כתיבת 9 שלבים (SEO + GEO + אימות מתמטי)
+                  </span>
                 </div>
                 {writerOutput && (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -770,20 +807,22 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               </div>
 
               <div
-                className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
                   phase === "editing"
-                    ? "bg-indigo-500/15 border-indigo-500/40 text-white"
+                    ? "bg-zinc-800 border-zinc-600 text-white"
                     : editorOutput
-                    ? "bg-slate-900/60 border-slate-800 text-slate-300"
-                    : "bg-slate-950/40 border-slate-900 text-slate-500"
+                    ? "bg-[#050507] border-zinc-800/90 text-zinc-200"
+                    : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>3. Priority-Ordered Agency Editor</span>
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 text-zinc-300" />
+                  <span className="font-medium">
+                    3. ביקורת עורך סוכנות מדורגת (עדיפות 1–5)
+                  </span>
                 </div>
                 {editorOutput && (
-                  <span className="text-[11px] font-semibold text-emerald-400">
+                  <span className="text-[11px] font-bold text-emerald-400">
                     {editorOutput.publicationReadyVerdict}
                   </span>
                 )}
@@ -792,17 +831,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* Clarification or Error Banner */}
             {clarificationPrompt && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5">
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-100 text-xs flex items-start gap-3 leading-relaxed">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div>{clarificationPrompt}</div>
               </div>
             )}
 
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-start gap-2.5">
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-100 text-xs flex items-start gap-3 leading-relaxed">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="font-semibold">Execution Notice</div>
+                  <div className="font-bold">שים לב</div>
                   <div>{errorMessage}</div>
                 </div>
               </div>
@@ -810,118 +849,118 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Multi-Stage Output Studio (8 Cols) */}
-        <div className="lg:col-span-8 flex flex-col space-y-4">
+        {/* RIGHT COLUMN: Multi-Stage Output Studio (8 Cols) - Extra Spacious */}
+        <div className="lg:col-span-8 flex flex-col space-y-6">
           {/* Output Stage Navigation Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800/80">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-zinc-800/90">
             <button
               onClick={() => setActiveTab("final_polished")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "final_polished"
-                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Publish-Ready Masterpiece
+              מאמר סופי מוכן לפרסום
             </button>
 
             <button
               onClick={() => setActiveTab("intelligence")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "intelligence"
-                  ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              News, Reddit & X Intel
+              מחקר חי: Google, Reddit (u/user) &amp; X
             </button>
 
             <button
               onClick={() => setActiveTab("stage1_2_3")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "stage1_2_3"
-                  ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              Stages 1–3: SERP, GEO & Outline
+              שלבים 1–3: מתחרים, GEO וראשי פרקים
             </button>
 
             <button
               onClick={() => setActiveTab("stage4_draft")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "stage4_draft"
-                  ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
-              Stage 4: Writer Article
+              שלב 4: טיוטת כותב מלאה
             </button>
 
             <button
               onClick={() => setActiveTab("stage5_6_seo")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "stage5_6_seo"
-                  ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              Stages 5–6: Meta & Image
+              שלבים 5–6: מטא-טאגס ותמונה
             </button>
 
             <button
               onClick={() => setActiveTab("stage7_8_9_audit")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "stage7_8_9_audit"
-                  ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <Scale className="w-3.5 h-3.5" />
-              Stages 7–9: Fact & Math Audit
+              שלבים 7–9: אימות עובדות ומתמטיקה
             </button>
 
             <button
               onClick={() => setActiveTab("editor_review")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === "editor_review"
-                  ? "bg-purple-500/15 text-purple-300 border border-purple-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-[#0b0c10] text-zinc-300 hover:text-white border border-zinc-800/80"
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              Editor Critique & Side-by-Side Fixes
+              דוח עורך והשוואת תיקונים
             </button>
           </div>
 
-          {/* TAB CONTENT AREA */}
-          <div className="flex-1 rounded-2xl border border-slate-800/90 bg-[#0a0b0e] p-6 shadow-2xl overflow-y-auto max-h-[calc(100vh-180px)]">
+          {/* TAB CONTENT AREA - Extra Spacious Padding & High-Contrast Typography */}
+          <div className="flex-1 rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-8 lg:p-10 shadow-2xl overflow-y-auto max-h-[calc(100vh-190px)]">
             {/* TAB 1: FINAL POLISHED PUBLISH-READY MASTERPIECE */}
             {activeTab === "final_polished" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {/* Header & Export Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                         {editorOutput?.publicationReadyVerdict ||
-                          "Verified Publish-Ready"}
+                          "Ready to Publish"}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        Zero Em-Dashes (—) • Math Reconciled • GEO Citation Ready
+                      <span className="text-xs text-zinc-300">
+                        ללא מקפים ארוכים (—) • מתמטיקה מאומתת • ייחוס משתמשי Reddit (u/...)
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white mt-1">
-                      Final Autonomous Publish-Ready Output
+                    <h3 className="text-xl font-bold text-white pt-1">
+                      מאמר סופי ערוך ומוכן לפרסום
                     </h3>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() =>
                         copyToClipboard(
@@ -931,17 +970,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                           "final-md"
                         )
                       }
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-xs font-bold text-black transition-colors"
                     >
                       {copiedId === "final-md" ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          Copied Markdown
+                          <Check className="w-4 h-4 text-emerald-600" />
+                          הועתק ללוח!
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5" />
-                          Copy Publish-Ready Markdown
+                          <Copy className="w-4 h-4" />
+                          העתק מאמר מלא (Markdown)
                         </>
                       )}
                     </button>
@@ -950,39 +989,39 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                 {/* Assumptions Box (Required per Input Handling Rule #2) */}
                 {writerOutput?.assumptions && (
-                  <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-indigo-300 mb-2">
-                      Explicit Assumptions & Parameters
+                  <div className="rounded-2xl bg-[#050507] border border-zinc-800 p-6">
+                    <div className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-4">
+                      הנחות עבודה והגדרות מאמר (Assumptions)
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                      <div>
-                        <span className="text-slate-400 block">Language</span>
-                        <span className="font-medium text-white">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 text-xs">
+                      <div className="space-y-1">
+                        <span className="text-zinc-400 block">שפת יעד</span>
+                        <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetLanguage}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">Market</span>
-                        <span className="font-medium text-white">
+                      <div className="space-y-1">
+                        <span className="text-zinc-400 block">שוק יעד</span>
+                        <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetMarket}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">Audience</span>
-                        <span className="font-medium text-white">
+                      <div className="space-y-1">
+                        <span className="text-zinc-400 block">קהל יעד</span>
+                        <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetAudience}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">Brand Tone</span>
-                        <span className="font-medium text-white">
+                      <div className="space-y-1">
+                        <span className="text-zinc-400 block">טון ומותג</span>
+                        <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.websiteBrand}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">Target Length</span>
-                        <span className="font-medium text-white">
-                          ~{writerOutput.assumptions.targetWordCount} words
+                      <div className="space-y-1">
+                        <span className="text-zinc-400 block">היקף יעד</span>
+                        <span className="font-semibold text-white text-sm">
+                          ~{writerOutput.assumptions.targetWordCount} מילים
                         </span>
                       </div>
                     </div>
@@ -990,7 +1029,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 )}
 
                 {/* Rendered Final Article */}
-                <div className="rounded-2xl bg-[#050507] border border-slate-800/80 p-6 sm:p-8">
+                <div className="rounded-3xl bg-[#050507] border border-zinc-800/90 p-8 sm:p-12">
                   <MarkdownRenderer
                     content={
                       editorOutput?.editedPublishReadyMarkdown ||
@@ -1003,60 +1042,60 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               </div>
             )}
 
-            {/* TAB 2: MULTI-SOURCE INTELLIGENCE (GOOGLE NEWS, REDDIT, X) */}
+            {/* TAB 2: MULTI-SOURCE INTELLIGENCE (GOOGLE NEWS, REDDIT WITH USERNAME, X) */}
             {activeTab === "intelligence" && feasibility && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Autonomous Topic Feasibility & Live Signal Radar
+              <div className="space-y-8">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-white">
+                      מחקר היתכנות אוטונומי ואיסוף מודיעין חי (Google, Reddit, X)
                     </h3>
-                    <p className="text-xs text-slate-400">
-                      Evaluates whether sufficient verifiable facts exist across Google News, Reddit, and X before writing.
+                    <p className="text-sm text-zinc-300">
+                      בוחן האם קיימים מספיק מקורות מאומתים, חדשות עדכניות וציטוטי משתמשים אמיתיים מ-Reddit לפני תחילת הכתיבה.
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className="text-[11px] text-slate-400 block">
-                        Feasibility Score
+                      <span className="text-xs text-zinc-400 block">
+                        ציון היתכנות
                       </span>
-                      <span className="text-xl font-bold text-emerald-400">
+                      <span className="text-2xl font-bold text-emerald-400">
                         {feasibility.confidenceScore}/100
                       </span>
                     </div>
                     <div
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold ${
                         feasibility.canWriteAuthoritatively
                           ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                           : "bg-rose-500/15 text-rose-300 border border-rose-500/30"
                       }`}
                     >
                       {feasibility.canWriteAuthoritatively
-                        ? "APPROVED FOR AUTHORITATIVE WRITING"
-                        : "INSUFFICIENT VERIFIED DATA"}
+                        ? "מאושר לכתיבה סמכותית"
+                        : "מידע מאומת חסר"}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-sm text-indigo-100 leading-relaxed">
-                  <strong className="text-indigo-300 font-semibold">
-                    Autonomous Verdict:{" "}
+                <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 text-sm text-zinc-100 leading-relaxed">
+                  <strong className="text-white font-bold block mb-1">
+                    החלטת מנוע המחקר:{" "}
                   </strong>
                   {feasibility.feasibilityVerdict}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Google News */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                      <Globe className="w-4 h-4" />
-                      Google News & Web Signals
+                  <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
+                      <Globe className="w-4 h-4 text-blue-400" />
+                      Google News ועדכוני רשת
                     </div>
-                    <ul className="space-y-2.5 text-xs text-slate-300">
+                    <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.latestNewsSummary || []).map((item, i) => (
                         <li
                           key={i}
-                          className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800/80 leading-relaxed"
+                          className="p-3.5 rounded-xl bg-[#0b0c10] border border-zinc-800/90 leading-relaxed"
                         >
                           {item}
                         </li>
@@ -1064,17 +1103,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     </ul>
                   </div>
 
-                  {/* Reddit Insights */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-orange-400 uppercase tracking-wider">
-                      <MessageSquare className="w-4 h-4" />
-                      Reddit Practitioner Insights
+                  {/* Reddit Insights with u/username */}
+                  <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
+                      <UserCheck className="w-4 h-4 text-orange-400" />
+                      ציטוטי משתמשים מ-Reddit (u/username)
                     </div>
-                    <ul className="space-y-2.5 text-xs text-slate-300">
+                    <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.redditInsights || []).map((item, i) => (
                         <li
                           key={i}
-                          className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800/80 leading-relaxed"
+                          className="p-3.5 rounded-xl bg-[#0b0c10] border border-zinc-800/90 leading-relaxed"
                         >
                           {item}
                         </li>
@@ -1083,16 +1122,16 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   </div>
 
                   {/* X (Twitter) Pulse */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 uppercase tracking-wider">
-                      <Zap className="w-4 h-4" />
-                      X (Twitter) Expert Pulse
+                  <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
+                      <Zap className="w-4 h-4 text-sky-400" />
+                      תובנות מומחים מרשת X (Twitter)
                     </div>
-                    <ul className="space-y-2.5 text-xs text-slate-300">
+                    <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.xTwitterInsights || []).map((item, i) => (
                         <li
                           key={i}
-                          className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800/80 leading-relaxed"
+                          className="p-3.5 rounded-xl bg-[#0b0c10] border border-zinc-800/90 leading-relaxed"
                         >
                           {item}
                         </li>
@@ -1102,31 +1141,31 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </div>
 
                 {/* Grounded Authoritative Sources */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Verified Authoritative Sources Discovered
+                <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                    מקורות רשמיים ושרשורי Reddit שאומתו במחקר
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {(feasibility.authoritativeSources || []).map((src, i) => (
                       <a
                         key={i}
                         href={src.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/50 transition-all flex flex-col justify-between gap-2 group"
+                        className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800 hover:border-zinc-500 transition-all flex flex-col justify-between gap-2 group"
                       >
                         <div>
-                          <div className="text-xs font-semibold text-indigo-300 group-hover:text-indigo-200 flex items-center justify-between gap-2">
+                          <div className="text-xs font-bold text-white group-hover:text-zinc-200 flex items-center justify-between gap-2">
                             <span className="truncate">{src.title}</span>
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
                           </div>
                           {src.snippet && (
-                            <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                            <p className="text-xs text-zinc-300 mt-1.5 line-clamp-2 leading-relaxed">
                               {src.snippet}
                             </p>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-500 truncate">
+                        <span className="text-[11px] text-zinc-500 truncate">
                           {src.url}
                         </span>
                       </a>
@@ -1138,93 +1177,101 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* TAB 3: STAGES 1, 2 & 3 (COMPETITOR RESEARCH, GEO PROMPTS, OUTLINE) */}
             {activeTab === "stage1_2_3" && writerOutput && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {/* Stage 1 */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
-                      Stage 1
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 1 (Stage 1)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Competitor Research, Keyword Map & Content Gaps
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      מחקר מתחרים, מפת מילות מפתח ופערי תוכן (Content Gaps)
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <span className="text-xs text-slate-400 block mb-1">
-                        Primary Keyword
-                      </span>
-                      <span className="text-sm font-bold text-emerald-300">
-                        {writerOutput.stage1CompetitorResearch.primaryKeyword}
-                      </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-4">
+                      <div>
+                        <span className="text-xs text-zinc-400 block mb-1">
+                          ביטוי מפתח ראשי (Primary Keyword)
+                        </span>
+                        <span className="text-base font-bold text-white">
+                          {writerOutput.stage1CompetitorResearch.primaryKeyword}
+                        </span>
+                      </div>
 
-                      <span className="text-xs text-slate-400 block mt-4 mb-1.5">
-                        Secondary Keywords
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(
-                          writerOutput.stage1CompetitorResearch
-                            .secondaryKeywords || []
-                        ).map((kw, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-md bg-slate-800 text-[11px] text-slate-200"
-                          >
-                            {kw}
-                          </span>
-                        ))}
+                      <div>
+                        <span className="text-xs text-zinc-400 block mb-2">
+                          ביטויי מפתח משניים (Secondary Keywords)
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {(
+                            writerOutput.stage1CompetitorResearch
+                              .secondaryKeywords || []
+                          ).map((kw, i) => (
+                            <span
+                              key={i}
+                              className="px-2.5 py-1 rounded-lg bg-[#0b0c10] border border-zinc-800 text-xs text-zinc-200"
+                            >
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <span className="text-xs text-slate-400 block mb-1.5">
-                        Related Entities (Knowledge Graph)
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(
-                          writerOutput.stage1CompetitorResearch
-                            .relatedEntities || []
-                        ).map((ent, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-[11px] text-indigo-200"
-                          >
-                            {ent}
-                          </span>
-                        ))}
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-4">
+                      <div>
+                        <span className="text-xs text-zinc-400 block mb-2">
+                          ישויות קשורות (Related Entities)
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {(
+                            writerOutput.stage1CompetitorResearch
+                              .relatedEntities || []
+                          ).map((ent, i) => (
+                            <span
+                              key={i}
+                              className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-zinc-100"
+                            >
+                              {ent}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
-                      <span className="text-xs text-slate-400 block mt-4 mb-1.5">
-                        People Also Ask (PAA)
-                      </span>
-                      <ul className="space-y-1 text-xs text-slate-300 list-disc ml-4">
-                        {(
-                          writerOutput.stage1CompetitorResearch.paaQuestions ||
-                          []
-                        ).map((q, i) => (
-                          <li key={i}>{q}</li>
-                        ))}
-                      </ul>
+                      <div>
+                        <span className="text-xs text-zinc-400 block mb-2">
+                          שאלות נפוצות מגוגל (People Also Ask)
+                        </span>
+                        <ul className="space-y-2 text-xs text-zinc-200 list-disc ml-4 leading-relaxed">
+                          {(
+                            writerOutput.stage1CompetitorResearch
+                              .paaQuestions || []
+                          ).map((q, i) => (
+                            <li key={i}>{q}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                      <span className="text-xs font-semibold text-amber-300 block">
-                        Identified Competitor Content Gaps
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                      <span className="text-xs font-bold text-white block">
+                        פערי תוכן שזוהו אצל המתחרים (Content Gaps)
                       </span>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-zinc-300 leading-relaxed">
                         {
                           writerOutput.stage1CompetitorResearch
                             .competitorAnalysisSummary
                         }
                       </p>
-                      <ul className="space-y-1.5 text-xs text-slate-200 pt-1">
+                      <ul className="space-y-2 text-xs text-zinc-100 pt-2">
                         {(
                           writerOutput.stage1CompetitorResearch
                             .contentGapsIdentified || []
                         ).map((gap, i) => (
-                          <li key={i} className="flex items-start gap-1.5">
-                            <ArrowRight className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                          <li key={i} className="flex items-start gap-2 leading-relaxed">
+                            <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                             <span>{gap}</span>
                           </li>
                         ))}
@@ -1234,24 +1281,24 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </section>
 
                 {/* Stage 2: GEO Prompt Research */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
-                      Stage 2
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 2 (Stage 2)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      GEO (AI Prompt Research & Quote-Ready Direct Citations)
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      מחקר פרומפטים למנועי AI (GEO) ותשובות ישירות מוכנות לציטוט
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {(writerOutput.stage2GeoPrompts || []).map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2"
+                        className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-indigo-500/20 text-indigo-300">
+                          <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase bg-zinc-900 text-zinc-200 border border-zinc-700">
                             {item.searchStyle}
                           </span>
                           <button
@@ -1261,20 +1308,20 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                                 `geo-${idx}`
                               )
                             }
-                            className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1"
+                            className="text-xs text-zinc-300 hover:text-white flex items-center gap-1.5"
                           >
                             {copiedId === `geo-${idx}` ? (
-                              <Check className="w-3 h-3 text-emerald-400" />
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
                             ) : (
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-3.5 h-3.5" />
                             )}
-                            Copy Snippet
+                            העתק תשובה
                           </button>
                         </div>
-                        <div className="text-xs font-semibold text-white">
+                        <div className="text-sm font-bold text-white leading-snug">
                           “{item.prompt}”
                         </div>
-                        <div className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">
+                        <div className="text-xs text-zinc-200 leading-relaxed bg-[#0b0c10] p-4 rounded-xl border border-zinc-800">
                           {item.quoteReadyDirectAnswer}
                         </div>
                       </div>
@@ -1283,46 +1330,46 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </section>
 
                 {/* Stage 3: Outline */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-400">
-                      Stage 3
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 3 (Stage 3)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Asymmetric Architecture & Direct-Answer Outline
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      מבנה מאמר אסימטרי וראשי פרקים (H1 / H2 / H3 / FAQ)
                     </h3>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-4">
+                  <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-5">
                     <div>
-                      <span className="text-[11px] text-slate-400 uppercase">
-                        H1 Title
+                      <span className="text-xs text-zinc-400 uppercase block mb-1">
+                        כותרת ראשית (H1)
                       </span>
-                      <h4 className="text-sm font-bold text-white">
+                      <h4 className="text-base font-bold text-white">
                         {writerOutput.stage3Outline?.h1Title}
                       </h4>
-                      <p className="text-xs text-slate-300 mt-1">
+                      <p className="text-xs text-zinc-200 mt-2 leading-relaxed">
                         {writerOutput.stage3Outline?.directIntroDraft}
                       </p>
                     </div>
 
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                       {(writerOutput.stage3Outline?.sections || []).map(
                         (sec, i) => (
                           <div
                             key={i}
-                            className="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 space-y-1"
+                            className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800 space-y-2"
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-indigo-300">
+                            <div className="flex items-center gap-2.5">
+                              <span className="px-2 py-0.5 rounded bg-zinc-800 text-xs font-mono text-white">
                                 {sec.headingLevel}
                               </span>
-                              <span className="text-xs font-semibold text-white">
+                              <span className="text-sm font-bold text-white">
                                 {sec.headingText}
                               </span>
                             </div>
-                            <p className="text-xs text-emerald-300/90">
-                              <strong>Direct Opening:</strong>{" "}
+                            <p className="text-xs text-zinc-200 leading-relaxed">
+                              <strong className="text-white">פתיחה ישירה (1–2 משפטים):</strong>{" "}
                               {sec.directOpeningDraft}
                             </p>
                           </div>
@@ -1336,14 +1383,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* TAB 4: STAGE 4 WRITER FULL ARTICLE DRAFT */}
             {activeTab === "stage4_draft" && writerOutput && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
-                      Stage 4
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 4 (Stage 4)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Writer Stage 4 Output (Pre-Editor Draft)
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      מאמר מלא לפני שלב העריכה
                     </h3>
                   </div>
                   <button
@@ -1353,23 +1400,23 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                         "stage4-md"
                       )
                     }
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold flex items-center gap-2"
                   >
                     {copiedId === "stage4-md" ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        Copied
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        הועתק
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3.5 h-3.5" />
-                        Copy Stage 4 Markdown
+                        <Copy className="w-4 h-4" />
+                        העתק Markdown
                       </>
                     )}
                   </button>
                 </div>
 
-                <div className="rounded-2xl bg-[#050507] border border-slate-800/80 p-6">
+                <div className="rounded-3xl bg-[#050507] border border-zinc-800/90 p-8 sm:p-12">
                   <MarkdownRenderer
                     content={writerOutput.stage4FullArticleMarkdown}
                   />
@@ -1379,21 +1426,21 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* TAB 5: STAGES 5 & 6 (META TAGS, SLUG & FEATURED IMAGE) */}
             {activeTab === "stage5_6_seo" && writerOutput && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {/* Stage 5 */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
-                      Stage 5
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 5 (Stage 5)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Meta Titles (50–60 chars), Meta Descriptions (140–155 chars) & URL Slug
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      תגיות מטא (Meta Titles 50–60 תווים, Meta Descriptions 140–155 תווים) ו-URL Slug
                     </h3>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between">
+                  <div className="p-5 rounded-2xl bg-[#050507] border border-zinc-800 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-slate-400 uppercase block">
+                      <span className="text-xs text-zinc-400 uppercase block mb-1">
                         Hyphenated English URL Slug
                       </span>
                       <code className="text-sm font-mono text-emerald-300">
@@ -1407,37 +1454,37 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                           "slug"
                         )
                       }
-                      className="px-2.5 py-1 rounded bg-slate-800 text-xs text-slate-300 hover:text-white"
+                      className="px-3.5 py-2 rounded-xl bg-zinc-800 text-xs font-semibold text-white hover:bg-zinc-700"
                     >
-                      {copiedId === "slug" ? "Copied" : "Copy Slug"}
+                      {copiedId === "slug" ? "הועתק!" : "העתק Slug"}
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2.5">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        3 Meta Title Options
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                        3 אפשרויות Meta Title
                       </h4>
                       {(writerOutput.stage5MetaAndSlug?.metaTitles || []).map(
                         (mt, i) => (
                           <div
                             key={i}
-                            className={`p-3.5 rounded-xl border ${
+                            className={`p-5 rounded-2xl border ${
                               mt.isRecommended
-                                ? "bg-indigo-500/10 border-indigo-500/40"
-                                : "bg-slate-900/50 border-slate-800"
+                                ? "bg-[#050507] border-white"
+                                : "bg-[#050507] border-zinc-800"
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[11px] font-semibold text-indigo-300">
-                                Option {i + 1}{" "}
-                                {mt.isRecommended && "★ Recommended"}
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-bold text-white">
+                                אפשרות {i + 1}{" "}
+                                {mt.isRecommended && "★ מומלץ"}
                               </span>
-                              <span className="text-[11px] text-slate-400">
-                                {mt.title.length} chars
+                              <span className="text-xs text-zinc-400">
+                                {mt.title.length} תווים
                               </span>
                             </div>
-                            <div className="text-xs font-medium text-white">
+                            <div className="text-sm font-medium text-zinc-100">
                               {mt.title}
                             </div>
                           </div>
@@ -1445,31 +1492,31 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       )}
                     </div>
 
-                    <div className="space-y-2.5">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        3 Meta Description Options
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                        3 אפשרויות Meta Description
                       </h4>
                       {(
                         writerOutput.stage5MetaAndSlug?.metaDescriptions || []
                       ).map((md, i) => (
                         <div
                           key={i}
-                          className={`p-3.5 rounded-xl border ${
+                          className={`p-5 rounded-2xl border ${
                             md.isRecommended
-                              ? "bg-emerald-500/10 border-emerald-500/40"
-                              : "bg-slate-900/50 border-slate-800"
+                              ? "bg-[#050507] border-white"
+                              : "bg-[#050507] border-zinc-800"
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[11px] font-semibold text-emerald-300">
-                              Option {i + 1}{" "}
-                              {md.isRecommended && "★ Recommended"}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-white">
+                              אפשרות {i + 1}{" "}
+                              {md.isRecommended && "★ מומלץ"}
                             </span>
-                            <span className="text-[11px] text-slate-400">
-                              {md.description.length} chars
+                            <span className="text-xs text-zinc-400">
+                              {md.description.length} תווים
                             </span>
                           </div>
-                          <div className="text-xs text-slate-200 leading-relaxed">
+                          <div className="text-xs text-zinc-200 leading-relaxed">
                             {md.description}
                           </div>
                         </div>
@@ -1479,21 +1526,21 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </section>
 
                 {/* Stage 6: Featured Image */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-400">
-                      Stage 6
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 6 (Stage 6)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      16:9 Editorial Featured Image Prompt, Alt Text & Filename
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      פרומפט לתמונה ראשית (16:9), טקסט חלופי (Alt Text) ושם קובץ
                     </h3>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-4">
+                  <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-5">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-indigo-300">
-                          16:9 Editorial Image Prompt (Zero Text / Logos)
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-white">
+                          פרומפט ליצירת תמונה (16:9 ללא טקסט או לוגו)
                         </span>
                         <button
                           onClick={() =>
@@ -1503,12 +1550,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                               "img-prompt"
                             )
                           }
-                          className="text-xs text-slate-400 hover:text-white"
+                          className="text-xs text-zinc-300 hover:text-white underline"
                         >
-                          {copiedId === "img-prompt" ? "Copied!" : "Copy Prompt"}
+                          {copiedId === "img-prompt" ? "הועתק!" : "העתק פרומפט"}
                         </button>
                       </div>
-                      <p className="text-xs text-slate-200 bg-slate-950 p-3.5 rounded-lg border border-slate-800 leading-relaxed">
+                      <p className="text-xs text-zinc-100 bg-[#0b0c10] p-4 rounded-xl border border-zinc-800 leading-relaxed">
                         {
                           writerOutput.stage6FeaturedImage
                             ?.imageGenerationPrompt
@@ -1517,17 +1564,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-[11px] text-slate-400 block mb-1">
-                          Descriptive Alt Text (with Primary Keyword)
+                      <div className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800">
+                        <span className="text-xs text-zinc-400 block mb-1">
+                          Alt Text (כולל ביטוי מפתח ראשי)
                         </span>
-                        <span className="text-xs text-white">
+                        <span className="text-xs text-white font-medium">
                           {writerOutput.stage6FeaturedImage?.altText}
                         </span>
                       </div>
-                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-[11px] text-slate-400 block mb-1">
-                          Hyphenated English Filename
+                      <div className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800">
+                        <span className="text-xs text-zinc-400 block mb-1">
+                          שם קובץ תקני באנגלית (Filename)
                         </span>
                         <code className="text-xs text-emerald-300 font-mono">
                           {writerOutput.stage6FeaturedImage?.englishFilename}
@@ -1541,43 +1588,43 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* TAB 6: STAGES 7, 8 & 9 (FACT CHECK TABLE, UNIQUENESS & MATH AUDIT) */}
             {activeTab === "stage7_8_9_audit" && writerOutput && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {/* Stage 7 Fact Check Table */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
-                      Stage 7
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלב 7 (Stage 7)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Fact Check & Official Source Verification Table
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      טבלת אימות עובדות ומקורות רשמיים (Fact Check Table)
                     </h3>
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-800">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-900 text-slate-300 uppercase text-[11px]">
+                  <div className="overflow-x-auto rounded-2xl border border-zinc-800">
+                    <table className="w-full text-left rtl:text-right text-xs">
+                      <thead className="bg-[#050507] text-zinc-200 uppercase text-xs">
                         <tr>
-                          <th className="p-3.5 border-b border-slate-800">
-                            Claim / Data Point
+                          <th className="p-4 border-b border-zinc-800">
+                            טענה / נתון במאמר
                           </th>
-                          <th className="p-3.5 border-b border-slate-800">
-                            Status
+                          <th className="p-4 border-b border-zinc-800">
+                            סטטוס
                           </th>
-                          <th className="p-3.5 border-b border-slate-800">
-                            Verification & Official Source
+                          <th className="p-4 border-b border-zinc-800">
+                            מקור רשמי וביאור
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/70 bg-slate-950/50">
+                      <tbody className="divide-y divide-zinc-800 bg-[#0b0c10]">
                         {(writerOutput.stage7FactCheckTable || []).map(
                           (item, i) => (
-                            <tr key={i} className="hover:bg-slate-900/40">
-                              <td className="p-3.5 text-slate-200 font-medium max-w-md">
+                            <tr key={i} className="hover:bg-zinc-900/50">
+                              <td className="p-4 text-zinc-100 font-medium max-w-md leading-relaxed">
                                 {item.claim}
                               </td>
-                              <td className="p-3.5">
+                              <td className="p-4">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                                     item.status === "Verified"
                                       ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                                       : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
@@ -1586,8 +1633,8 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                                   {item.status}
                                 </span>
                               </td>
-                              <td className="p-3.5 space-y-1">
-                                <div className="text-slate-300">
+                              <td className="p-4 space-y-1.5 leading-relaxed">
+                                <div className="text-zinc-200">
                                   {item.verificationNote}
                                 </div>
                                 {item.sourceUrl && (
@@ -1595,7 +1642,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                                     href={item.sourceUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-indigo-400 hover:underline"
+                                    className="inline-flex items-center gap-1.5 text-white underline hover:text-zinc-300 font-medium"
                                   >
                                     <span>
                                       {item.sourceTitle || item.sourceUrl}
@@ -1613,57 +1660,57 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </section>
 
                 {/* Stages 8 & 9 Audit */}
-                <section className="space-y-4">
-                  <div className="border-b border-slate-800 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
-                      Stages 8 & 9
+                <section className="space-y-5">
+                  <div className="border-b border-zinc-800 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      שלבים 8 ו-9 (Stages 8 &amp; 9)
                     </span>
-                    <h3 className="text-base font-bold text-white">
-                      Uniqueness, Mathematical Reconciliation & Humanization Audit
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      בקרת ייחודיות, התכנסות מתמטית וטוהר שפה (ללא קלישאות AI)
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                      <span className="text-xs font-semibold text-emerald-400">
-                        Stage 8: Mathematical & Empirical Reconciliation
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                      <span className="text-sm font-bold text-white block">
+                        שלב 8: ביקורת מתמטית והתכנסות נתונים
                       </span>
-                      <p className="text-xs text-slate-300 leading-relaxed">
+                      <p className="text-xs text-zinc-200 leading-relaxed">
                         {
                           writerOutput.stage8And9QualityAudit
                             ?.mathematicalAndEmpiricalAudit
                         }
                       </p>
-                      <div className="pt-2 text-xs text-slate-400">
-                        <strong>Uniqueness Audit:</strong>{" "}
+                      <div className="pt-2 text-xs text-zinc-300 leading-relaxed">
+                        <strong className="text-white">בדיקת ייחודיות:</strong>{" "}
                         {writerOutput.stage8And9QualityAudit?.uniquenessNotes}
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                      <span className="text-xs font-semibold text-purple-400">
-                        Stage 9: Orthographic Purity & Anti-Cliché Audit
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                      <span className="text-sm font-bold text-white block">
+                        שלב 9: טוהר שפה, אנושיות וניקוי תבניות AI
                       </span>
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-zinc-200 leading-relaxed">
                         {
                           writerOutput.stage8And9QualityAudit
                             ?.characterSetPurityNote
                         }
                       </p>
-                      <div className="flex items-center gap-4 pt-2">
+                      <div className="flex items-center gap-8 pt-2">
                         <div>
-                          <span className="text-[11px] text-slate-400 block">
-                            Em-Dashes (—)
+                          <span className="text-xs text-zinc-400 block">
+                            מקפים ארוכים (—)
                           </span>
-                          <span className="text-base font-bold text-emerald-400">
+                          <span className="text-xl font-bold text-emerald-400">
                             0
                           </span>
                         </div>
                         <div>
-                          <span className="text-[11px] text-slate-400 block">
-                            Cadence Score
+                          <span className="text-xs text-zinc-400 block">
+                            ציון גיוון משפטים
                           </span>
-                          <span className="text-base font-bold text-indigo-300">
+                          <span className="text-xl font-bold text-white">
                             {
                               writerOutput.stage8And9QualityAudit
                                 ?.sentenceLengthVarietyScore
@@ -1680,50 +1727,50 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             {/* TAB 7: AGENCY EDITOR CRITIQUE & SIDE-BY-SIDE FIXES */}
             {activeTab === "editor_review" && editorOutput && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">
-                        Digital Marketing Agency Editor Report
+              <div className="space-y-8">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                        דוח עורך תוכן ומנתח טקסט
                       </span>
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-300">
-                        Language: {editorOutput.detectedLanguage}{" "}
-                        {editorOutput.isRtlLanguage ? "(RTL Checked)" : "(LTR)"}
+                      <span className="px-2.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-700 text-xs text-zinc-200">
+                        שפה שזוהתה: {editorOutput.detectedLanguage}{" "}
+                        {editorOutput.isRtlLanguage ? "(RTL)" : "(LTR)"}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white mt-1">
-                      Priority-Ranked Editorial Analysis & Side-by-Side Fixes
+                    <h3 className="text-xl font-bold text-white pt-1">
+                      ניתוח עומק ותיקונים מדורגים לפי סדר עדיפויות (1 עד 5)
                     </h3>
                   </div>
 
-                  <span className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <span className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                     {editorOutput.publicationReadyVerdict}
                   </span>
                 </div>
 
                 {/* 1. Assumptions & 2. Overall Assessment */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
-                      Overall Editorial Assessment
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">
+                      הערכה כוללת (Overall Assessment)
                     </span>
-                    <p className="text-sm text-slate-100 leading-relaxed">
+                    <p className="text-sm text-zinc-100 leading-relaxed">
                       {editorOutput.overallAssessment}
                     </p>
                     {editorOutput.rtlDirectionAuditNote && (
-                      <p className="text-xs text-indigo-300/90 pt-1">
-                        <strong>Language & Direction Check:</strong>{" "}
+                      <p className="text-xs text-zinc-300 pt-2 border-t border-zinc-800/80 leading-relaxed">
+                        <strong className="text-white">בדיקת כיווניות ופיסוק:</strong>{" "}
                         {editorOutput.rtlDirectionAuditNote}
                       </p>
                     )}
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Editor Assumptions
+                  <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                      הנחות עבודה של העורך
                     </span>
-                    <ul className="space-y-1.5 text-xs text-slate-300 list-disc ml-4">
+                    <ul className="space-y-2 text-xs text-zinc-200 list-disc ml-4 leading-relaxed">
                       {(editorOutput.assumptions || []).map((a, i) => (
                         <li key={i}>{a}</li>
                       ))}
@@ -1732,15 +1779,15 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </div>
 
                 {/* 3. Strengths */}
-                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                    Key Editorial Strengths (Preserved)
+                <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    נקודות חוזק בטקסט (נשמרו בעריכה)
                   </span>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     {(editorOutput.strengths || []).map((str, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-2 text-xs text-slate-200"
+                        className="flex items-start gap-2.5 text-xs text-zinc-100 leading-relaxed"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                         <span>{str}</span>
@@ -1750,50 +1797,50 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </div>
 
                 {/* 4. Required Fixes in Priority Order (1 to 5) with Side-by-Side Original vs Suggested */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-300">
-                    Required Fixes (Ordered by Priority 1 → 5: Factual, Logic, Structure, Clarity, Style)
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                    תיקונים נדרשים לפי סדר עדיפויות (1. עובדות ← 2. לוגיקה ← 3. מבנה וקהל ← 4. בהירות ← 5. סגנון)
                   </h4>
 
                   {(editorOutput.requiredFixes || []).length === 0 ? (
-                    <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400">
-                      No required fixes identified — the text meets all accuracy and structural criteria.
+                    <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 text-xs text-zinc-300">
+                      לא נמצאו שגיאות מחייבות — הטקסט עומד בכל דרישות הדיוק והמבנה.
                     </div>
                   ) : (
                     (editorOutput.requiredFixes || []).map((fix, idx) => (
                       <div
                         key={idx}
-                        className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3"
+                        className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-4"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-semibold">
+                          <span className="px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-xs font-bold">
                             {fix.priorityCategory}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="p-3 rounded-lg bg-rose-950/25 border border-rose-500/25">
-                            <span className="text-[10px] font-semibold uppercase text-rose-400 block mb-1">
-                              Original Phrasing
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30">
+                            <span className="text-xs font-bold uppercase text-rose-300 block mb-1.5">
+                              ניסוח מקורי (Original)
                             </span>
-                            <p className="text-xs text-slate-200 leading-relaxed">
+                            <p className="text-xs text-zinc-100 leading-relaxed">
                               “{fix.originalPhrasing}”
                             </p>
                           </div>
 
-                          <div className="p-3 rounded-lg bg-emerald-950/25 border border-emerald-500/25">
-                            <span className="text-[10px] font-semibold uppercase text-emerald-400 block mb-1">
-                              Suggested Fix
+                          <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30">
+                            <span className="text-xs font-bold uppercase text-emerald-300 block mb-1.5">
+                              ניסוח מוצע (Suggested Fix)
                             </span>
-                            <p className="text-xs text-white font-medium leading-relaxed">
+                            <p className="text-xs text-white font-semibold leading-relaxed">
                               “{fix.suggestedPhrasing}”
                             </p>
                           </div>
                         </div>
 
-                        <p className="text-xs text-slate-400">
-                          <strong className="text-slate-200">
-                            Why this fix is needed:
+                        <p className="text-xs text-zinc-300 leading-relaxed">
+                          <strong className="text-white">
+                            מדוע התיקון נדרש:
                           </strong>{" "}
                           {fix.explanation}
                         </p>
@@ -1803,29 +1850,29 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 </div>
 
                 {/* 5. Optional Suggestions for Improvement */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
-                    Optional Suggestions for Improvement (Separated from Errors)
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    הצעות אופציונליות לשיפור (מופרדות משגיאות חובה)
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(editorOutput.suggestionsForImprovement || []).map(
                       (sug, i) => (
                         <div
                           key={i}
-                          className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-2"
+                          className="p-5 rounded-2xl bg-[#050507] border border-zinc-800 space-y-2.5"
                         >
-                          <span className="text-[11px] font-semibold text-indigo-400">
+                          <span className="text-xs font-bold text-white">
                             {sug.area}
                           </span>
                           {sug.originalSnippet && (
-                            <p className="text-xs text-slate-400 line-through">
+                            <p className="text-xs text-zinc-400 line-through">
                               “{sug.originalSnippet}”
                             </p>
                           )}
-                          <p className="text-xs text-slate-200 font-medium">
-                            → “{sug.suggestedImprovement}”
+                          <p className="text-xs text-zinc-100 font-semibold leading-relaxed">
+                            ← “{sug.suggestedImprovement}”
                           </p>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-xs text-zinc-300 leading-relaxed">
                             {sug.rationale}
                           </p>
                         </div>
@@ -1834,27 +1881,27 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   </div>
                 </div>
 
-                {/* 6. Items Needing Further Checking (Fact vs Estimate Classification) */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Fact vs. Interpretation / Estimate Classification
+                {/* 6. Items Needing Further Checking */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    סיווג עובדות מאומתות מול אומדנים והערכות
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(editorOutput.itemsNeedingFurtherChecking || []).map(
                       (item, i) => (
                         <div
                           key={i}
-                          className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-start justify-between gap-3"
+                          className="p-5 rounded-2xl bg-[#050507] border border-zinc-800 flex items-start justify-between gap-4"
                         >
-                          <div className="space-y-1">
-                            <div className="text-xs font-medium text-white">
+                          <div className="space-y-1.5">
+                            <div className="text-xs font-bold text-white">
                               {item.claimOrItem}
                             </div>
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-xs text-zinc-300 leading-relaxed">
                               {item.reasonUnverified}
                             </div>
                           </div>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-indigo-300 shrink-0">
+                          <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-zinc-900 border border-zinc-700 text-zinc-200 shrink-0">
                             {item.status}
                           </span>
                         </div>

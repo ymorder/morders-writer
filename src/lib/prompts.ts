@@ -64,6 +64,7 @@ Applied across all articles and topics to eliminate rigid AI templates, absolute
 - Write the complete, comprehensive, publish-ready article in Markdown format in 'stage4FullArticleMarkdown'.
 - Direct Opening: Answer the main query directly in the first 2-3 sentences. No generic filler.
 - H2 Openings: Start every H2 section with a concise 1-2 sentence direct answer before expanding.
+- Reddit Attribution Rule: When integrating insights from Reddit into the article body, ALWAYS cite the specific Reddit username (e.g., \`u/username\` in \`r/subreddit\`) and quote or accurately state what that user actually wrote, rather than dropping vague or unattributed questions into the text.
 - Terminology Accuracy: Use precise industry terminology for the requested topic in the target language.
 - Tone & Banned Patterns: Expert, natural human tone. NO em dashes (—) anywhere in the article! Use commas, colons, parentheses, or standard hyphens instead. Avoid AI clichés and generic filler ('delve', 'unlock', 'game changer', 'seamless', 'in conclusion', 'לצלול', 'הסיבה לכך פשוטה').
 - Proofreading & Grammar: Strictly proofread for language grammar, agreements, sentence flow, zero foreign character mixing, and typos before output.

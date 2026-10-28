@@ -74,12 +74,13 @@ ${standingRulesBlock}
 ${intelligenceBlock}
 
 IMPORTANT LANGUAGE, DEPTH & QUALITY RULES:
-1. Write the article (Stage 4), Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
+1. Write the article (Stage 4), Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6, and exact Reddit usernames like u/... or r/...).
 2. If "${targetLanguage}" is Hebrew (עברית), write like a veteran Israeli domain expert and senior journalist: natural, sharp, authoritative Hebrew syntax, zero translationese, zero awkward phrasing, and 100% pure Hebrew character set.
-3. NEVER write generic filler or abstract templates. Every paragraph must contain concrete domain mechanics, real named entities, specific figures, practical edge cases, and insights synthesized from the live news, Reddit, and X research.
-4. Write a comprehensive, deep, exhaustive article in 'stage4FullArticleMarkdown' (~${wordCount} words) with varied section structures, real-world scenarios, and a mathematically reconciled comparative table specific to "${topic}".
-5. ZERO EM DASHES (—) anywhere in the output.
-6. Start the article with a direct 2-3 sentence answer to the main query. Start every H2 section with a concise 1-2 sentence direct answer before expanding.
+3. REDDIT USER ATTRIBUTION RULE: When referencing Reddit in the article, ALWAYS include the specific username (e.g., u/username in r/subreddit) and quote/describe what that user actually wrote. Never drop random unattributed questions into the text!
+4. NEVER write generic filler or abstract templates. Every paragraph must contain concrete domain mechanics, real named entities, specific figures, practical edge cases, and insights synthesized from the live news, Reddit, and X research.
+5. Write a comprehensive, deep, exhaustive article in 'stage4FullArticleMarkdown' (~${wordCount} words) with varied section structures, real-world scenarios, and a mathematically reconciled comparative table specific to "${topic}".
+6. ZERO EM DASHES (—) anywhere in the output.
+7. Start the article with a direct 2-3 sentence answer to the main query. Start every H2 section with a concise 1-2 sentence direct answer before expanding.
 
 Return ONLY a valid JSON object matching this exact structure:
 {

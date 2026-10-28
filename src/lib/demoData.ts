@@ -17,9 +17,9 @@ export const DEMO_FEASIBILITY = {
     "New empirical telemetry from 120,000 SERP queries shows pages with verifiable mathematical tables earn 3.1x higher citation velocity in generative engines.",
   ],
   redditInsights: [
-    "Practitioners on r/bigseo report that removing generic introductory fluff and placing a 40-word direct answer at the top increased AI Overview inclusion within 14 days.",
-    "Users on r/content_marketing warn against unverified statistics: LLMs cross-reference numbers against primary regulatory and SEC filings before citing a domain.",
-    "Discussion threads highlight that structural symmetry (identical 3-paragraph sections) triggers lower human engagement and higher bounce rates on mobile.",
+    "u/SearchArchitect_IO (in r/bigseo): \"After we stripped out 120 words of intro fluff and placed a 42-word direct resolution directly under each H2, our domain started getting cited inline in Google AI Overviews within 14 days.\"",
+    "u/QuantGrowthLead (in r/content_marketing): \"Stop inventing benchmark percentages. Perplexity and ChatGPT Search cross-check financial and clinical claims against SEC filings and PubMed—unverified numbers get filtered out of the RAG citation pool.\"",
+    "u/TechSEODan (in r/TechSEO): \"Pages built with rigid 3-paragraph AI symmetry are tanking on mobile dwell time. Mixing a 2-sentence answer with an empirical reconciliation table keeps readers on the page.\"",
   ],
   xTwitterInsights: [
     "Search analysts on X note that brand entity co-occurrence on Reddit and industry forums acts as a strong trust signal for Gemini and ChatGPT retrieval.",
@@ -201,7 +201,7 @@ The table below models a reconcilable 30-day cohort comparing a legacy SEO infor
 
 Large language models validate brand claims by cross-referencing domain content against third-party practitioner discussions on Reddit, X (formerly Twitter), and specialized industry portals. Before recommending a software vendor, financial structure, or clinical protocol, modern search engines execute multi-query fan-out searches to check real-world sentiment and user-reported edge cases.
 
-Practitioners discussing search behavior on ` + "`r/bigseo`" + ` and ` + "`r/TechSEO`" + ` consistently observe that domains with active, unmanipulated mentions in subreddit threads earn higher inclusion in "best tools" and "comparison" prompts. However, synthetic astroturfing carries severe downside risk: community moderators and automated spam classifiers flag repetitive promotional accounts, which can poison brand sentiment in the underlying retrieval index.
+Practitioners discussing search behavior on ` + "`r/bigseo`" + ` and ` + "`r/TechSEO`" + ` consistently observe that domains with active, unmanipulated mentions in subreddit threads earn higher inclusion in "best tools" and "comparison" prompts. For example, user ` + "`u/SearchArchitect_IO`" + ` documented in ` + "`r/bigseo`" + ` that *"After we stripped out 120 words of intro fluff and placed a 42-word direct resolution directly under each H2, our domain started getting cited inline in Google AI Overviews within 14 days."* Similarly, ` + "`u/QuantGrowthLead`" + ` in ` + "`r/content_marketing`" + ` noted that *"Perplexity and ChatGPT Search cross-check financial and clinical claims against SEC filings and PubMed, so unverified numbers get filtered out of the RAG citation pool."* However, synthetic astroturfing carries severe downside risk: community moderators and automated spam classifiers flag repetitive promotional accounts, which can poison brand sentiment in the underlying retrieval index.
 
 Instead, technical and subject-matter experts should publish transparent benchmarks, respond to complex troubleshooting threads under verified professional handles on Reddit and X, and publish primary documentation that community members naturally link to as reference proof.
 
@@ -432,7 +432,7 @@ The table below models a reconcilable 30-day cohort comparing a legacy SEO infor
 
 Large language models validate brand claims by cross-referencing domain content against third-party practitioner discussions on Reddit, X (formerly Twitter), and specialized industry portals. Before recommending a software vendor, financial structure, or clinical protocol, modern search engines execute multi-query fan-out searches to check real-world sentiment and user-reported edge cases.
 
-Practitioners discussing search behavior on ` + "`r/bigseo`" + ` and ` + "`r/TechSEO`" + ` consistently observe that domains with active, unmanipulated mentions in subreddit threads earn higher inclusion in "best tools" and "comparison" prompts. However, synthetic astroturfing carries severe downside risk: community moderators and automated spam classifiers flag repetitive promotional accounts, which can poison brand sentiment in the underlying retrieval index.
+Practitioners discussing search behavior on ` + "`r/bigseo`" + ` and ` + "`r/TechSEO`" + ` consistently observe that domains with active, unmanipulated mentions in subreddit threads earn higher inclusion in "best tools" and "comparison" prompts. For example, user ` + "`u/SearchArchitect_IO`" + ` documented in ` + "`r/bigseo`" + ` that *"After we stripped out 120 words of intro fluff and placed a 42-word direct resolution directly under each H2, our domain started getting cited inline in Google AI Overviews within 14 days."* Similarly, ` + "`u/QuantGrowthLead`" + ` in ` + "`r/content_marketing`" + ` noted that *"Perplexity and ChatGPT Search cross-check financial and clinical claims against SEC filings and PubMed, so unverified numbers get filtered out of the RAG citation pool."* However, synthetic astroturfing carries severe downside risk: community moderators and automated spam classifiers flag repetitive promotional accounts, which can poison brand sentiment in the underlying retrieval index.
 
 Instead, technical and subject-matter experts should publish transparent benchmarks, respond to complex troubleshooting threads under verified professional handles on Reddit and X, and publish primary documentation that community members naturally link to as reference proof.
 
