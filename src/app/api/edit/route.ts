@@ -10,6 +10,35 @@ import { EditorOutputPackage } from "@/types/pipeline";
 
 export const maxDuration = 60;
 
+function applyEditorialFixesToMarkdown(
+  originalMarkdown: string,
+  parsed: EditorOutputPackage
+): string {
+  let updated = originalMarkdown;
+
+  // Apply all Priority 1-5 required fixes where originalPhrasing matches
+  for (const fix of parsed.requiredFixes || []) {
+    const orig = fix.originalPhrasing?.trim();
+    const repl = fix.suggestedPhrasing?.trim();
+    if (orig && repl && orig.length > 4 && updated.includes(orig)) {
+      updated = updated.replace(orig, repl);
+    }
+  }
+
+  // Apply optional suggestions where an exact originalSnippet matches
+  for (const sug of parsed.suggestionsForImprovement || []) {
+    const orig = sug.originalSnippet?.trim();
+    const repl = sug.suggestedImprovement?.trim();
+    if (orig && repl && orig.length > 6 && updated.includes(orig)) {
+      updated = updated.replace(orig, repl);
+    }
+  }
+
+  // Enforce zero em-dashes (—)
+  updated = updated.replace(/\s*—\s*/g, ", ");
+  return updated;
+}
+
 export async function POST(req: NextRequest) {
   let providedKey = "";
   try {
@@ -50,18 +79,22 @@ export async function POST(req: NextRequest) {
       ? `STANDING CLIENT / AGENCY RULES (Enforce strictly across the document):\n${standingRules.trim()}`
       : `STANDING CLIENT / AGENCY RULES: None specified.`;
 
+    const isShortText = submittedText.length < 2500;
+
     const userPrompt = `Analyze and edit the following submitted text according to your Content Editor & Text Analyst instructions.
 
 ${taskCardBlock}
 
 ${standingRulesBlock}
 
-Include Full Edited Publish-Ready Version: ${includeFullEditedVersion ? "YES" : "NO"}
-
 SUBMITTED TEXT:
 """
 ${submittedText}
 """
+
+IMPORTANT INSTRUCTIONS FOR REQUIRED FIXES:
+- In "requiredFixes", "originalPhrasing" MUST be an exact, verbatim substring copied directly from SUBMITTED TEXT so it can be highlighted and replaced cleanly.
+- Order "requiredFixes" strictly by priorityLevel (1 = Factual Errors, 2 = Logical/Completeness Gaps, 3 = Structure & Audience Fit, 4 = Clarity & Readability, 5 = Tone, Style & Word Choice).
 
 Return ONLY a valid JSON object matching this exact schema:
 {
@@ -83,13 +116,14 @@ Return ONLY a valid JSON object matching this exact schema:
   },
   "strengths": [
     "Specific strength of the text #1",
-    "Specific strength of the text #2"
+    "Specific strength of the text #2",
+    "Specific strength of the text #3"
   ],
   "requiredFixes": [
     {
       "priorityLevel": 1,
       "priorityCategory": "1. Factual Errors or Misleading Info",
-      "originalPhrasing": "Exact quote from the submitted text",
+      "originalPhrasing": "Exact verbatim quote from the submitted text",
       "suggestedPhrasing": "Concrete corrected phrasing in the text's native language",
       "explanation": "Why this fix is required"
     }
@@ -97,7 +131,7 @@ Return ONLY a valid JSON object matching this exact schema:
   "suggestionsForImprovement": [
     {
       "area": "SEO / GEO Quote-Readiness or Stylistic Polish",
-      "originalSnippet": "Optional original snippet",
+      "originalSnippet": "Exact verbatim snippet from the text",
       "suggestedImprovement": "Concrete optional improvement",
       "rationale": "Why this optional improvement helps"
     }
@@ -105,13 +139,13 @@ Return ONLY a valid JSON object matching this exact schema:
   "itemsNeedingFurtherChecking": [
     {
       "claimOrItem": "Specific claim, statistic, or date",
-      "reasonUnverified": "Why it requires verification or how it was verified via search",
+      "reasonUnverified": "Why it requires verification or how it was verified",
       "status": "Verified Fact"
     }
   ],
   "editedPublishReadyMarkdown": ${
-    includeFullEditedVersion
-      ? '"Full edited, publish-ready version of the text in Markdown, preserving the writer\'s voice while applying all required fixes and removing any em-dashes (—)."'
+    includeFullEditedVersion && isShortText
+      ? '"Full edited, publish-ready version of the text in Markdown with all required fixes applied and zero em-dashes (—)."'
       : "null"
   }
 }`;
@@ -119,19 +153,37 @@ Return ONLY a valid JSON object matching this exact schema:
     const { text: rawText } = await generateStructuredContent({
       apiKey,
       model,
+      preferredGroqModel: "openai/gpt-oss-safeguard-20b",
       systemInstruction: EDITOR_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.25,
       useGoogleSearch: true,
+      jsonMode: true,
+      maxTokens: 4096,
     });
 
     const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
 
-    if (parsed.editedPublishReadyMarkdown) {
-      parsed.editedPublishReadyMarkdown = parsed.editedPublishReadyMarkdown.replace(
-        /\s*—\s*/g,
-        ", "
+    // Ensure requiredFixes are sorted strictly 1 -> 5
+    if (Array.isArray(parsed.requiredFixes)) {
+      parsed.requiredFixes.sort(
+        (a, b) => (a.priorityLevel || 5) - (b.priorityLevel || 5)
       );
+    }
+
+    if (includeFullEditedVersion) {
+      if (
+        !parsed.editedPublishReadyMarkdown ||
+        parsed.editedPublishReadyMarkdown.length < submittedText.length * 0.75
+      ) {
+        parsed.editedPublishReadyMarkdown = applyEditorialFixesToMarkdown(
+          submittedText,
+          parsed
+        );
+      } else {
+        parsed.editedPublishReadyMarkdown =
+          parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
+      }
     }
 
     return NextResponse.json({ result: parsed, mode: "ai_live" });

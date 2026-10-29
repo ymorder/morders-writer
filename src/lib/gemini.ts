@@ -56,21 +56,42 @@ export function getGeminiClient(userProvidedKey?: string) {
   return new GoogleGenAI({ apiKey });
 }
 
+const ALL_GROQ_MODELS = [
+  "openai/gpt-oss-120b",
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-20b",
+  "openai/gpt-oss-safeguard-20b",
+];
+
+function buildGroqQueue(preferredGroqModel?: string): string[] {
+  if (!preferredGroqModel) return ALL_GROQ_MODELS;
+  return [
+    preferredGroqModel,
+    ...ALL_GROQ_MODELS.filter((m) => m !== preferredGroqModel),
+  ];
+}
+
 export async function generateStructuredContent(params: {
   apiKey?: string;
   model?: string;
+  preferredGroqModel?: string;
   systemInstruction: string;
   userPrompt: string;
   temperature?: number;
   useGoogleSearch?: boolean;
+  jsonMode?: boolean;
+  maxTokens?: number;
 }): Promise<{ text: string; groundingLinks: { title: string; url: string }[] }> {
   const {
     apiKey: rawKey,
     model = "gemini-2.5-pro",
+    preferredGroqModel,
     systemInstruction,
     userPrompt,
     temperature = 0.25,
     useGoogleSearch = true,
+    jsonMode = true,
+    maxTokens = 6000,
   } = params;
 
   const key = getEffectiveApiKey(rawKey);
@@ -89,76 +110,96 @@ export async function generateStructuredContent(params: {
         ? "https://openrouter.ai/api/v1/chat/completions"
         : "https://api.openai.com/v1/chat/completions";
 
-    // For Groq free tier, rotate across independent model pools so 3 sequential stages never hit the 8,000 TPM per-model limit
-    const groqModelQueue = [
-      "openai/gpt-oss-120b",
-      "qwen/qwen3.8-27b",
-      "openai/gpt-oss-20b",
-    ];
     const modelsToTry =
       provider === "groq"
-        ? groqModelQueue
+        ? buildGroqQueue(preferredGroqModel)
         : provider === "openrouter"
         ? ["google/gemini-2.5-pro-preview"]
         : ["gpt-4o"];
 
     let lastError = "";
-    for (const candidateModel of modelsToTry) {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${key}`,
-        },
-        body: JSON.stringify({
+    // Up to 2 passes across the model pool if a temporary per-minute rate limit occurs
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+
+      for (const candidateModel of modelsToTry) {
+        const isGptOss = candidateModel.startsWith("openai/gpt-oss");
+        const requestBody: Record<string, any> = {
           model: candidateModel,
           temperature,
-          max_tokens: 4096,
-          response_format: { type: "json_object" },
+          max_tokens: maxTokens,
           messages: [
             {
               role: "system",
               content: `${systemInstruction.replace(
                 /using Google Search|Use your Google Search tool/gi,
                 "using the provided live research context"
-              )}\n\nCRITICAL: Do NOT call any tools or functions. Directly output a single valid JSON object matching the exact schema requested by the user.`,
+              )}\n\nCRITICAL: Do NOT call any tools or functions. ${
+                jsonMode
+                  ? "Directly output a single valid JSON object matching the exact schema requested by the user."
+                  : "Directly output the requested Markdown text without wrapping it in JSON."
+              }`,
             },
             { role: "user", content: userPrompt },
           ],
-        }),
-      });
+        };
 
-      const data = await res.json();
-      if (res.ok) {
-        const text = data?.choices?.[0]?.message?.content || "";
-        return { text, groundingLinks: [] };
-      }
+        if (isGptOss) {
+          requestBody.reasoning_effort = "low";
+        }
+        if (jsonMode) {
+          requestBody.response_format = { type: "json_object" };
+        }
 
-      const errMsg = data?.error?.message || res.statusText || "";
-      lastError = errMsg;
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
 
-      // If this specific Groq model hit its TPM limit or doesn't support json_object, immediately try the next model in the pool
-      if (
-        provider === "groq" &&
-        (res.status === 429 ||
-          errMsg.includes("Rate limit") ||
-          errMsg.includes("tokens per minute") ||
-          errMsg.includes("response_format"))
-      ) {
-        console.warn(
-          `Groq model ${candidateModel} hit limit/constraint, switching to next model in pool...`
+        const data = await res.json();
+        if (res.ok) {
+          let text = data?.choices?.[0]?.message?.content || "";
+          // Strip <think>...</think> blocks if emitted by Qwen in non-JSON mode
+          text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+          if (text) {
+            return { text, groundingLinks: [] };
+          }
+        }
+
+        const errMsg = data?.error?.message || res.statusText || "";
+        lastError = errMsg;
+
+        if (
+          provider === "groq" &&
+          (res.status === 429 ||
+            res.status === 400 ||
+            res.status === 503 ||
+            errMsg.includes("Rate limit") ||
+            errMsg.includes("tokens per minute") ||
+            errMsg.includes("response_format") ||
+            errMsg.includes("json_validate_failed"))
+        ) {
+          console.warn(
+            `Groq model ${candidateModel} hit limit/constraint (${errMsg.slice(0, 80)}), switching to next model in pool...`
+          );
+          continue;
+        }
+
+        throw new Error(
+          errMsg || `${provider.toUpperCase()} API Error: ${res.statusText}`
         );
-        continue;
       }
-
-      throw new Error(
-        errMsg || `${provider.toUpperCase()} API Error: ${res.statusText}`
-      );
     }
 
     throw new Error(
       lastError ||
-        "All models in the pool reached their per-minute token limit. Please wait 20 seconds and try again."
+        "All models in the pool reached their per-minute token limit. Please wait 15 seconds and try again."
     );
   }
 
@@ -183,7 +224,7 @@ export async function generateStructuredContent(params: {
     const data = await res.json();
     if (!res.ok) {
       throw new Error(
-        data?.error?.message || `שגיאת Anthropic: ${res.statusText}`
+        data?.error?.message || `Anthropic API Error: ${res.statusText}`
       );
     }
 
@@ -210,11 +251,9 @@ export async function generateStructuredContent(params: {
       });
     } catch (firstErr: any) {
       const errMsg = String(firstErr?.message || "");
-      // If the key itself is invalid, don't retry with the same invalid key; throw immediately with diagnostics
       if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key not valid")) {
         throw firstErr;
       }
-      // Otherwise retry without googleSearch tool (e.g. if search grounding quota is restricted)
       response = await ai.models.generateContent({
         model,
         contents: userPrompt,
@@ -264,13 +303,15 @@ export function formatGeminiError(error: any, rawKeyProvided?: string): string {
     return `Google rejected the API key as invalid ${preview}. Please verify the key or clear the input box to use the default server key.`;
   }
   if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429") || msg.includes("Rate limit")) {
-    return "Per-minute token rate limit reached. Please wait ~20 seconds and run again.";
+    return "Per-minute token rate limit reached. Please wait ~15 seconds and run again.";
   }
   return msg || "An unexpected error occurred while communicating with the AI provider.";
 }
 
 export function extractJsonFromText<T>(rawText: string): T {
-  const cleaned = rawText.trim();
+  const cleaned = rawText
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .trim();
   try {
     return JSON.parse(cleaned) as T;
   } catch {

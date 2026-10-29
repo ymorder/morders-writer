@@ -115,6 +115,7 @@ Synthesize the pre-fetched live signals from Google News, Reddit (including exac
     const { text: rawText, groundingLinks } = await generateStructuredContent({
       apiKey,
       model,
+      preferredGroqModel: "openai/gpt-oss-20b",
       systemInstruction: FEASIBILITY_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.2,
