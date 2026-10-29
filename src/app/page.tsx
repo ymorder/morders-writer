@@ -357,101 +357,106 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
       style={{ backgroundColor: "#050507", color: "#f8fafc" }}
       className="min-h-screen flex flex-col bg-[#050507] text-zinc-100"
     >
-      {/* Top Navigation Bar - Spacious & Clean */}
+      {/* Top Navigation Bar - Spacious & Responsive */}
       <header className="sticky top-0 z-30 border-b border-zinc-800/80 bg-[#050507]/95 backdrop-blur-xl">
-        <div className="max-w-[1680px] mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 p-[1px] shadow-lg">
+        <div className="max-w-[1680px] mx-auto px-6 lg:px-10 py-3.5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 p-[1px] shadow-lg shrink-0">
               <div className="w-full h-full bg-[#0a0b0e] rounded-[15px] flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold tracking-tight text-white text-xl">
+              <div className="flex items-center gap-2.5 whitespace-nowrap">
+                <span className="font-bold tracking-tight text-white text-lg">
                   Morder&apos;s Writer
                 </span>
                 <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700/80">
-                  SEO • GEO • Editorial Studio
+                  SEO • GEO • Editorial
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 hidden sm:block mt-0.5">
+              <p className="text-[11px] text-zinc-400 hidden xl:block mt-0.5">
                 Autonomous Google News, Reddit (u/user quotes) &amp; X Grounded Content Engine
               </p>
             </div>
           </div>
 
           {/* Mode Switcher */}
-          <div className="flex items-center bg-[#0c0d12] p-1.5 rounded-2xl border border-zinc-800/90">
+          <div className="flex items-center bg-[#0c0d12] p-1 rounded-2xl border border-zinc-800/90 shrink-0">
             <button
               onClick={() => setMode("autonomous")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 mode === "autonomous"
                   ? "bg-white text-black shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5 shrink-0" />
               Autonomous Full Pipeline
             </button>
             <button
               onClick={() => setMode("writer")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 mode === "writer"
                   ? "bg-white text-black shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              <PenTool className="w-3.5 h-3.5" />
+              <PenTool className="w-3.5 h-3.5 shrink-0" />
               9-Stage Writer
             </button>
             <button
               onClick={() => setMode("editor")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 mode === "editor"
                   ? "bg-white text-black shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               Agency Editor
             </button>
           </div>
 
           {/* Right Controls: Model & API Key */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-[#0c0d12] border border-zinc-800 rounded-xl px-3.5 py-2 text-xs font-medium text-zinc-200 focus:outline-none focus:border-zinc-500"
+              className="bg-[#0c0d12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-medium text-zinc-200 focus:outline-none focus:border-zinc-500"
             >
               <option value="gemini-2.5-pro">
-                Gemini 2.5 Pro (Recommended — Deep Writing)
+                AI Model: Flagship Pro (120B / 2.5 Pro)
               </option>
               <option value="gemini-2.5-flash">
-                Gemini 2.5 Flash (Fast Research)
+                AI Model: Fast Flash
               </option>
             </select>
 
             <button
               onClick={() => setShowKeyModal(!showKeyModal)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
             >
-              <KeyRound className="w-3.5 h-3.5" />
-              {apiKey ? "API Key Active" : "Server API Key Active (.env.local)"}
+              <KeyRound className="w-3.5 h-3.5 shrink-0" />
+              {apiKey ? "API Key Active" : "Server Key Active"}
             </button>
           </div>
         </div>
 
         {/* Collapsible API Key Bar */}
         {showKeyModal && (
-          <div className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4">
+          <div
+            dir="rtl"
+            className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4 text-right"
+          >
             <div className="max-w-[1680px] mx-auto space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-xs text-zinc-300 flex flex-wrap items-center gap-3">
                   <span>
-                    <strong className="text-white">API Key (תומך ב-Gemini / OpenAI / Claude / Groq):</strong>{" "}
-                    הדבק מפתח מ-Google AI Studio (`AIzaSy...`), מ-OpenAI (`sk-...`) או מ-Groq (`gsk_...`).
+                    <strong className="text-white">
+                      הגדרת מפתח API (תומך ב-Gemini / OpenAI / Claude / Groq):
+                    </strong>{" "}
+                    מפתח השרת ב-<code>.env.local</code> כבר פעיל אוטומטית! תוכל גם להדביק מפתח חלופי כאן:
                   </span>
                   <a
                     href="https://aistudio.google.com/app/apikey"
@@ -468,18 +473,19 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 hover:bg-zinc-700 font-medium inline-flex items-center gap-1.5 transition-colors"
                   >
-                    Groq (מפתח חינם בשנייה)
+                    Groq Console
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
                 <div className="flex items-center gap-2 flex-1 max-w-xl">
                   <input
+                    dir="ltr"
                     type={showRawKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => handleSaveApiKey(e.target.value)}
-                    placeholder="הדבק כאן מפתח (למשל AIzaSy... או sk-... או gsk_...)"
-                    className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white font-mono focus:outline-none focus:border-white"
+                    placeholder="השאר ריק לשימוש במפתח השרת או הדבק מפתח (AIzaSy / gsk_ / sk-)"
+                    className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white font-mono text-left focus:outline-none focus:border-white"
                   />
                   <button
                     type="button"
@@ -527,7 +533,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         {/* LEFT COLUMN: Mission Control & Inputs (4 Cols) */}
         <div className="lg:col-span-4 space-y-6">
           {mode !== "editor" ? (
-            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
+            <div
+              dir="rtl"
+              className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6 text-right"
+            >
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                 <h2 className="text-base font-bold text-white flex items-center gap-2.5">
                   <Compass className="w-4 h-4 text-zinc-300" />
@@ -703,7 +712,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
             </div>
           ) : (
             /* STANDALONE EDITOR INPUT PANEL */
-            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
+            <div
+              dir="rtl"
+              className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6 text-right"
+            >
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                 <h2 className="text-base font-bold text-white flex items-center gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -789,13 +801,16 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           )}
 
           {/* Live Pipeline Telemetry Stepper */}
-          <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div
+            dir="rtl"
+            className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-6 space-y-4 text-right"
+          >
+            <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
                 סטטוס מערכת אוטונומית
               </span>
               <span
-                className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
+                className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold shrink-0 ${
                   phase === "completed"
                     ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                     : phase === "error" || phase === "clarifying"
@@ -809,7 +824,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             <div className="space-y-2.5 text-xs">
               <div
-                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
+                className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border ${
                   phase === "researching"
                     ? "bg-zinc-800 border-zinc-600 text-white"
                     : feasibility
@@ -817,21 +832,24 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Globe className="w-4 h-4 text-zinc-300" />
-                  <span className="font-medium">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Globe className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <span className="font-medium leading-snug">
                     1. מחקר חדשות, Reddit (עם שם משתמש) ו-X
                   </span>
                 </div>
                 {feasibility && (
-                  <span className="text-xs font-bold text-emerald-400">
+                  <span
+                    dir="ltr"
+                    className="text-xs font-bold text-emerald-400 shrink-0"
+                  >
                     {feasibility.confidenceScore}%
                   </span>
                 )}
               </div>
 
               <div
-                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
+                className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border ${
                   phase === "writing"
                     ? "bg-zinc-800 border-zinc-600 text-white"
                     : writerOutput
@@ -839,19 +857,19 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Layers className="w-4 h-4 text-zinc-300" />
-                  <span className="font-medium">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Layers className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <span className="font-medium leading-snug">
                     2. כתיבת 9 שלבים (SEO + GEO + אימות מתמטי)
                   </span>
                 </div>
                 {writerOutput && (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 )}
               </div>
 
               <div
-                className={`flex items-center justify-between p-3.5 rounded-2xl border ${
+                className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border ${
                   phase === "editing"
                     ? "bg-zinc-800 border-zinc-600 text-white"
                     : editorOutput
@@ -859,14 +877,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     : "bg-[#050507]/50 border-zinc-900 text-zinc-500"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-4 h-4 text-zinc-300" />
-                  <span className="font-medium">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <ShieldCheck className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <span className="font-medium leading-snug">
                     3. ביקורת עורך סוכנות מדורגת (עדיפות 1–5)
                   </span>
                 </div>
                 {editorOutput && (
-                  <span className="text-[11px] font-bold text-emerald-400">
+                  <span
+                    dir="ltr"
+                    className="text-[11px] font-bold text-emerald-400 shrink-0"
+                  >
                     {editorOutput.publicationReadyVerdict}
                   </span>
                 )}

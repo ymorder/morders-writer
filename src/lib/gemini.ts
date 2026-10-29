@@ -89,43 +89,74 @@ export async function generateStructuredContent(params: {
         ? "https://openrouter.ai/api/v1/chat/completions"
         : "https://api.openai.com/v1/chat/completions";
 
-    const targetModel =
+    // For Groq free tier, rotate across independent model pools so 3 sequential stages never hit the 8,000 TPM per-model limit
+    const groqModelQueue = [
+      "openai/gpt-oss-120b",
+      "qwen/qwen3.8-27b",
+      "openai/gpt-oss-20b",
+    ];
+    const modelsToTry =
       provider === "groq"
-        ? "openai/gpt-oss-120b"
+        ? groqModelQueue
         : provider === "openrouter"
-        ? "google/gemini-2.5-pro-preview"
-        : "gpt-4o";
+        ? ["google/gemini-2.5-pro-preview"]
+        : ["gpt-4o"];
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: targetModel,
-        temperature,
-        max_tokens: 8000,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: `${systemInstruction.replace(/using Google Search|Use your Google Search tool/gi, "using the provided live research context")}\n\nCRITICAL: Do NOT call any tools or functions. Directly output a single valid JSON object matching the exact schema requested by the user.`,
-          },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    let lastError = "";
+    for (const candidateModel of modelsToTry) {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: candidateModel,
+          temperature,
+          max_tokens: 4096,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: `${systemInstruction.replace(
+                /using Google Search|Use your Google Search tool/gi,
+                "using the provided live research context"
+              )}\n\nCRITICAL: Do NOT call any tools or functions. Directly output a single valid JSON object matching the exact schema requested by the user.`,
+            },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
+      const data = await res.json();
+      if (res.ok) {
+        const text = data?.choices?.[0]?.message?.content || "";
+        return { text, groundingLinks: [] };
+      }
+
+      const errMsg = data?.error?.message || res.statusText || "";
+      lastError = errMsg;
+
+      // If this specific Groq model hit its TPM limit or doesn't support json_object, immediately try the next model in the pool
+      if (
+        provider === "groq" &&
+        (res.status === 429 ||
+          errMsg.includes("Rate limit") ||
+          errMsg.includes("tokens per minute") ||
+          errMsg.includes("response_format"))
+      ) {
+        console.warn(
+          `Groq model ${candidateModel} hit limit/constraint, switching to next model in pool...`
+        );
+        continue;
+      }
+
       throw new Error(
-        data?.error?.message || `שגיאת ${provider.toUpperCase()}: ${res.statusText}`
+        errMsg || `שגיאת ${provider.toUpperCase()}: ${res.statusText}`
       );
     }
 
-    const text = data?.choices?.[0]?.message?.content || "";
-    return { text, groundingLinks: [] };
+    throw new Error(lastError || "כל המודלים הזמינים הגיעו למגבלת הדקה. המתן 20 שניות ונסה שוב.");
   }
 
   // 2. Anthropic Claude (sk-ant-...)
