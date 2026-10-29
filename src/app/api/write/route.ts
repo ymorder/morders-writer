@@ -10,7 +10,7 @@ import { WriterOutputPackage } from "@/types/pipeline";
 
 export const maxDuration = 60;
 
-function sanitizeArticleText(markdown: string): {
+export function sanitizeArticleText(markdown: string): {
   cleaned: string;
   emDashesRemoved: number;
 } {
@@ -19,17 +19,31 @@ function sanitizeArticleText(markdown: string): {
   const cleaned = markdown
     .replace(/^```(?:markdown|md)?\s*/i, "")
     .replace(/\s*```$/i, "")
-    // Replace non-breaking hyphens (\u2011) and en-dashes (\u2013) with standard hyphen
+    // 1. Replace non-breaking hyphens (\u2011) and en-dashes (\u2013) with standard hyphen
     .replace(/[\u2010\u2011\u2012\u2013]/g, "-")
-    // Replace narrow no-break spaces (\u202F, \u2009) with normal space or nothing before %
+    // 2. Replace narrow no-break spaces (\u202F, \u2009)
     .replace(/[\u202F\u2009]+%/g, "%")
     .replace(/[\u202F\u2009]/g, " ")
-    // In Markdown headings (# ... - ...), convert spaced hyphen to colon (: )
-    .replace(/^(#{1,4}\s+[^\n-]+?)\s+-\s+/gm, "$1: ")
-    // Remove em-dashes (—) and spaced dash punctuation ( - ) in prose
+    // 3. In Markdown headings (# ... - ...), if preceded by ? or ! or :, just remove the dash! Otherwise convert spaced dash to colon (: )
+    .replace(/^(#{1,4}\s+.+?[?!:])\s*(?:—|-)\s+/gm, "$1 ")
+    .replace(/^(#{1,4}\s+[^\n]+?)\s+(?:—|-)\s+/gm, "$1: ")
+    // 4. If an em-dash or spaced hyphen follows ?, !, :, ., or , -> remove the dash without adding a comma!
+    .replace(/([?!:.,])\s*(?:—|-)\s+/g, "$1 ")
+    // 5. Remaining em-dashes (—) and spaced hyphens ( - ) in prose become ", "
     .replace(/\s*—\s*/g, ", ")
     .replace(/\s+-\s+/g, ", ")
-    // Fix common Hebrew construct-state (סמיכות) & gender agreement slips
+    // 6. Strip any comma that appears after ?, !, ., or : (fixes "?, " and ":, ")
+    .replace(/([?!.:])\s*,+/g, "$1")
+    .replace(/,\s*,+/g, ",")
+    // 7. Fix future-tense 2026 phrasing, bare "סייבר ב-2026", and broken "נקודת מפנה" clichés in Hebrew
+    .replace(/מה עומד לקרות ב-?2026\?/g, "מה קורה בפועל ב-2026?")
+    .replace(/מה עומד לקרות ב-?2026/g, "מה קורה בפועל ב-2026")
+    .replace(/מה צפוי לקרות ב-?2026/g, "מה מתרחש ב-2026")
+    .replace(/(^|\n)סייבר ב(?:שנת )?-?2026/g, "$1תחום הסייבר בשנת 2026")
+    .replace(/צפוי להיות נקודת מפנה/g, "עובר שינוי מעשי עמוק")
+    .replace(/צפויה להיות נקודת מפנה/g, "עוברת שינוי מעשי עמוק")
+    .replace(/הוא נקודת מפנה/g, "עובר שינוי משמעותי")
+    // 8. Fix common Hebrew construct-state (סמיכות) & gender agreement slips
     .replace(/בשתי המוצרים/g, "בשני המוצרים")
     .replace(/שתי מוצרים/g, "שני מוצרים")
     .replace(/שתי מסלולים/g, "שני מסלולים")
@@ -86,17 +100,22 @@ export async function POST(req: NextRequest) {
 
     const hebrewWritingMandate = isHebrew
       ? `
-STRICT NATIVE ISRAELI HEBREW MANDATE (ENFORCE 100%):
-1. Write 100% natural, idiomatic, fluent Israeli Hebrew as written by a senior editor at TheMarker, Calcalist, or Globes.
-2. STRICT HEBREW GRAMMAR (סמיכות ושם המספר):
-   - In construct state (סמיכות), NEVER put ה הידיעה on the first word: write "קרן הפנסיה", "מקרן הפנסיה", "קופת הגמל", "דמי הניהול", "בית ההשקעות" (NEVER "הקרן הפנסיה" or "מהקרן הפנסיה").
+STRICT NATIVE ISRAELI HEBREW & TEMPORAL MANDATE (ENFORCE 100%):
+1. CURRENT DATE IS OCTOBER 2026: The year 2026 is the PRESENT, NOT the future!
+   - NEVER write about 2026 in the future tense (FORBIDDEN: "מה עומד לקרות ב-2026?", "ב-2026 צפוי להיות", "שנת 2026 תביא").
+   - Write about 2026 in the PRESENT tense ("נכון ל-2026", "במהלך 2026", "המציאות בשנת 2026").
+2. LOGICAL HEBREW SYNTAX & ANTI-CLICHÉ RULE:
+   - NEVER write illogical subject-predicate sentences like "סייבר ב-2026 צפוי להיות נקודת מפנה" (a field like "סייבר" cannot "be a turning point"!).
+   - NEVER use empty translated AI clichés ("נקודת מפנה", "שלב קריטי", "בעולם המשתנה במהירות", "משנה משחק"). Open every paragraph with a concrete, factual, domain-specific statement.
+3. STRICT HEBREW GRAMMAR (סמיכות ושם המספר):
+   - In construct state (סמיכות), NEVER put ה הידיעה on the first word: write "קרן הפנסיה", "מקרן הפנסיה", "קופת הגמל", "דמי הניהול", "בית ההשקעות".
    - Enforce strict gender agreement for numbers (שם המספר): "שני מוצרים / שני מסלולים / שני מכשירים" (masculine), "שתי קרנות / שתי קופות / שתי אפשרויות" (feminine).
-3. NEVER invent fake Hebrew words or literal word-for-word calques from English (such as "האי-סכנות", "מסית", "שוקית"). Use real, standard Israeli Hebrew terminology.
-4. DO NOT insert English translations in parentheses after Hebrew terms (e.g., NEVER write "אימות מתמשך (Continuous Authentication)" or "שרשרת האספקה (Supply Chain)"). Write pure Hebrew without English clutter.
-5. NEVER invent fake Israeli studies, fake reports (like "לפי דוח של פאנדר" or "לפי מחקר של אוניברסיטת תל אביב"), fake percentages, or fake website names. Only cite real sources provided in the Verified Sources list below.
-6. NEVER use em-dashes (—) or spaced hyphens ( - ) as sentence punctuation; use commas, colons, or periods.
-7. Stay 100% locked onto the exact subject "${topic}".`
-      : "";
+4. PUNCTUATION PERFECTION:
+   - NEVER put a comma after a question mark (?,) or exclamation mark (!,).
+   - NEVER use em-dashes (—) or spaced hyphens ( - ) as sentence pause punctuation; use standard commas, colons, or periods.
+5. DO NOT insert English translations in parentheses after Hebrew terms, and NEVER invent fake Israeli studies, fake reports, or fake percentages.`
+      : `
+TEMPORAL MANDATE: Today is October 2026. The year 2026 is the PRESENT, NOT the future. Always write about 2026 in the present tense, never as a future prediction.`;
 
     const intelligenceBlock = feasibilityContext
       ? `
@@ -131,11 +150,11 @@ ${standingRulesBlock}
 ${intelligenceBlock}
 
 IMPORTANT RULES:
-1. Every stage MUST be 100% about "${topic}". Never drift to another subject.
+1. Every stage MUST be 100% about "${topic}" in the PRESENT tense (October 2026). Never write "what will happen in 2026" or "מה עומד לקרות ב-2026".
 2. Write Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
 3. Provide 10 realistic user prompts in 'stage2GeoPrompts' across Informational, How-To, Best / Top, Comparison, and Edge-Case styles, each with a 2-3 sentence quote-ready direct answer.
-4. In 'stage7FactCheckTable', only list real verified facts and real URLs from the Verified Web Sources above. Never invent fake URLs or fake reports.
-5. ZERO EM DASHES (—) anywhere in the output.
+4. In 'stage7FactCheckTable', only list real verified facts and real URLs from the Verified Web Sources above.
+5. ZERO EM DASHES (—) and ZERO "?, " anywhere in the output.
 
 Return ONLY a valid JSON object matching this exact structure:
 {
@@ -207,7 +226,7 @@ Return ONLY a valid JSON object matching this exact structure:
     "uniquenessVerified": true,
     "uniquenessNotes": "Verification of 100% original phrasing and structural asymmetry.",
     "mathematicalAndEmpiricalAudit": "Verification that all figures, percentages, and table values reconcile.",
-    "bannedPatternsRemoved": ["delve", "unlock", "game changer", "seamless", "in conclusion", "em-dashes (—)"],
+    "bannedPatternsRemoved": ["delve", "unlock", "game changer", "seamless", "נקודת מפנה", "em-dashes (—)"],
     "emDashCount": 0,
     "characterSetPurityVerified": true,
     "characterSetPurityNote": "100% pure ${targetLanguage} orthography verified.",
@@ -236,7 +255,10 @@ Return ONLY a valid JSON object matching this exact structure:
       ? `Follow this Outline strictly on the topic "${topic}":\nH1: ${
           parsed.stage3Outline.h1Title
         }\nSections:\n${(parsed.stage3Outline.sections || [])
-          .map((s) => `- ${s.headingLevel}: ${s.headingText} (${s.directOpeningDraft})`)
+          .map(
+            (s) =>
+              `- ${s.headingLevel}: ${s.headingText} (${s.directOpeningDraft})`
+          )
           .join("\n")}`
       : "";
 
@@ -262,15 +284,15 @@ ${intelligenceBlock}
 ${outlineGuidance}
 
 CRITICAL WRITING RULES (ENFORCE 100%):
-1. STAY 100% ON THE EXACT TOPIC: "${topic}". Do NOT write about cybersecurity, phishing, or any unrelated topic unless "${topic}" explicitly asks for it.
-2. Write the entire article in 100% pure, idiomatic, native "${targetLanguage}".
-3. NEVER invent fake surveys, fake university studies (like "לפי מחקר של אוניברסיטת..."), fake reports (like "לפי דוח של פאנדר"), or unverified statistics. Explain the real domain mechanics, practical criteria, pros/cons, and real-world scenarios accurately.
-4. Start with a compelling H1 (# Title), followed immediately by a direct, concrete 2-3 sentence answer to the main query. No throat-clearing, no clichés.
-5. Open EVERY H2 section (## Heading) with a concise 1-2 sentence quote-ready direct answer before expanding into deep analysis, examples, and edge cases.
-6. Include a comprehensive, mathematically reconciled Markdown comparison table specific to "${topic}".
-7. Qualify legal, financial, or regulatory statements with jurisdiction ("${targetCountry}") and timeframe (2026).
+1. STAY 100% ON THE EXACT TOPIC: "${topic}".
+2. CURRENT DATE IS OCTOBER 2026: Never write about 2026 in the future tense ("מה עומד לקרות ב-2026", "צפוי להיות ב-2026"). Write in the PRESENT tense.
+3. Write the entire article in 100% pure, idiomatic, native "${targetLanguage}". Never write illogical sentences like "סייבר ב-2026 צפוי להיות נקודת מפנה".
+4. NEVER invent fake surveys, fake university studies, fake reports, or unverified statistics.
+5. Start with a compelling H1 (# Title), followed immediately by a direct, concrete 2-3 sentence answer to the main query.
+6. Open EVERY H2 section (## Heading) with a concise 1-2 sentence quote-ready direct answer before expanding into deep analysis, examples, and edge cases.
+7. Include a comprehensive, mathematically reconciled Markdown comparison table specific to "${topic}".
 8. Include a dedicated FAQ section answering 5 high-intent questions concisely, followed by a practical bottom-line conclusion.
-9. ZERO EM DASHES (—) anywhere in the article.
+9. ZERO EM DASHES (—), ZERO spaced hyphens ( - ), and NEVER put a comma after a question mark (?,).
 10. Output ONLY the full Markdown article starting with "# ". Do NOT wrap in JSON or code fences.`;
 
     const articleResponse = await generateStructuredContent({
@@ -282,7 +304,7 @@ CRITICAL WRITING RULES (ENFORCE 100%):
       temperature: 0.25,
       useGoogleSearch: true,
       jsonMode: false,
-      maxTokens: 3400,
+      maxTokens: 3200,
     });
 
     const { cleaned, emDashesRemoved } = sanitizeArticleText(
@@ -303,7 +325,7 @@ CRITICAL WRITING RULES (ENFORCE 100%):
           "unlock",
           "game changer",
           "seamless",
-          "in conclusion",
+          "נקודת מפנה",
           "em-dashes (—)",
         ],
         emDashCount: 0,
@@ -316,7 +338,7 @@ CRITICAL WRITING RULES (ENFORCE 100%):
       if (emDashesRemoved > 0) {
         parsed.stage8And9QualityAudit.uniquenessNotes = `${
           parsed.stage8And9QualityAudit.uniquenessNotes || ""
-        } (${emDashesRemoved} em-dashes automatically sanitized.)`.trim();
+        } (${emDashesRemoved} dashes/punctuation flaws automatically sanitized.)`.trim();
       }
     }
 
