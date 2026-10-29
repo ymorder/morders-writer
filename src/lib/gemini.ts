@@ -16,7 +16,7 @@ export function sanitizeApiKey(rawKey?: string): string {
     .replace(/^["']+|["']+$/g, "")
     .replace(/^(GEMINI_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|API_KEY)\s*=\s*/i, "")
     .replace(/^Bearer\s+/i, "")
-    .replace(/[^\x21-\x7E]/g, ""); // Strip invisible Unicode / RTL marks
+    .replace(/[^\x21-\x7E]/g, "");
 }
 
 export function detectKeyProvider(rawKey?: string): KeyProvider {
@@ -28,7 +28,7 @@ export function detectKeyProvider(rawKey?: string): KeyProvider {
   if (key.startsWith("sk-or-")) return "openrouter";
   if (key.startsWith("gsk_")) return "groq";
   if (key.startsWith("sk-")) return "openai";
-  return "gemini"; // try Gemini by default if format is custom
+  return "gemini";
 }
 
 export function getEffectiveApiKey(userProvidedKey?: string): string {
@@ -56,19 +56,14 @@ export function getGeminiClient(userProvidedKey?: string) {
   return new GoogleGenAI({ apiKey });
 }
 
-const ALL_GROQ_MODELS = [
-  "openai/gpt-oss-120b",
-  "qwen/qwen3.8-27b",
-  "openai/gpt-oss-20b",
-  "openai/gpt-oss-safeguard-20b",
-];
-
-function buildGroqQueue(preferredGroqModel?: string): string[] {
-  if (!preferredGroqModel) return ALL_GROQ_MODELS;
-  return [
-    preferredGroqModel,
-    ...ALL_GROQ_MODELS.filter((m) => m !== preferredGroqModel),
-  ];
+function estimateTokens(text: string): number {
+  // Hebrew / UTF-8 non-ASCII characters use ~1.2 tokens per char in BPE; ASCII uses ~0.28 tokens per char
+  let nonAscii = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) > 127) nonAscii++;
+  }
+  const ascii = text.length - nonAscii;
+  return Math.ceil(ascii * 0.3 + nonAscii * 1.15);
 }
 
 export async function generateStructuredContent(params: {
@@ -85,13 +80,12 @@ export async function generateStructuredContent(params: {
   const {
     apiKey: rawKey,
     model = "gemini-2.5-pro",
-    preferredGroqModel,
     systemInstruction,
     userPrompt,
     temperature = 0.25,
     useGoogleSearch = true,
     jsonMode = true,
-    maxTokens = 6000,
+    maxTokens = 3800,
   } = params;
 
   const key = getEffectiveApiKey(rawKey);
@@ -110,96 +104,107 @@ export async function generateStructuredContent(params: {
         ? "https://openrouter.ai/api/v1/chat/completions"
         : "https://api.openai.com/v1/chat/completions";
 
+    // Always try the flagship 120B model first (2 retries with token replenishment wait) before ever falling back
     const modelsToTry =
       provider === "groq"
-        ? buildGroqQueue(preferredGroqModel)
+        ? [
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",
+          ]
         : provider === "openrouter"
         ? ["google/gemini-2.5-pro-preview"]
         : ["gpt-4o"];
 
+    const sysContent = `${systemInstruction.replace(
+      /using Google Search|Use your Google Search tool/gi,
+      "using the provided live research context"
+    )}\n\nCRITICAL: Do NOT call any tools or functions. ${
+      jsonMode
+        ? "Directly output a single valid JSON object matching the exact schema requested by the user."
+        : "Directly output the requested Markdown text without wrapping it in JSON."
+    }`;
+
+    const estInputTokens = estimateTokens(sysContent + userPrompt);
+    // Keep estInputTokens + safeMaxTokens well under Groq's 8,000 TPM per-request limit
+    const safeMaxTokens =
+      provider === "groq"
+        ? Math.max(900, Math.min(maxTokens, 7200 - estInputTokens))
+        : maxTokens;
+
     let lastError = "";
-    // Up to 2 passes across the model pool if a temporary per-minute rate limit occurs
-    for (let attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) {
-        await new Promise((r) => setTimeout(r, 4000));
+    for (let idx = 0; idx < modelsToTry.length; idx++) {
+      const candidateModel = modelsToTry[idx];
+      const isGptOss = candidateModel.startsWith("openai/gpt-oss");
+
+      const requestBody: Record<string, any> = {
+        model: candidateModel,
+        temperature,
+        max_tokens: safeMaxTokens,
+        messages: [
+          { role: "system", content: sysContent },
+          { role: "user", content: userPrompt },
+        ],
+      };
+
+      if (isGptOss) {
+        requestBody.reasoning_effort = "low";
+      }
+      if (jsonMode) {
+        requestBody.response_format = { type: "json_object" };
       }
 
-      for (const candidateModel of modelsToTry) {
-        const isGptOss = candidateModel.startsWith("openai/gpt-oss");
-        const requestBody: Record<string, any> = {
-          model: candidateModel,
-          temperature,
-          max_tokens: maxTokens,
-          messages: [
-            {
-              role: "system",
-              content: `${systemInstruction.replace(
-                /using Google Search|Use your Google Search tool/gi,
-                "using the provided live research context"
-              )}\n\nCRITICAL: Do NOT call any tools or functions. ${
-                jsonMode
-                  ? "Directly output a single valid JSON object matching the exact schema requested by the user."
-                  : "Directly output the requested Markdown text without wrapping it in JSON."
-              }`,
-            },
-            { role: "user", content: userPrompt },
-          ],
-        };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-        if (isGptOss) {
-          requestBody.reasoning_effort = "low";
+      const data = await res.json();
+      if (res.ok) {
+        let text = data?.choices?.[0]?.message?.content || "";
+        text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+        if (text) {
+          return { text, groundingLinks: [] };
         }
-        if (jsonMode) {
-          requestBody.response_format = { type: "json_object" };
-        }
+      }
 
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
+      const errMsg = data?.error?.message || res.statusText || "";
+      lastError = errMsg;
 
-        const data = await res.json();
-        if (res.ok) {
-          let text = data?.choices?.[0]?.message?.content || "";
-          // Strip <think>...</think> blocks if emitted by Qwen in non-JSON mode
-          text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-          if (text) {
-            return { text, groundingLinks: [] };
-          }
-        }
-
-        const errMsg = data?.error?.message || res.statusText || "";
-        lastError = errMsg;
-
-        if (
-          provider === "groq" &&
-          (res.status === 429 ||
-            res.status === 400 ||
-            res.status === 503 ||
-            errMsg.includes("Rate limit") ||
-            errMsg.includes("tokens per minute") ||
-            errMsg.includes("response_format") ||
-            errMsg.includes("json_validate_failed"))
-        ) {
-          console.warn(
-            `Groq model ${candidateModel} hit limit/constraint (${errMsg.slice(0, 80)}), switching to next model in pool...`
-          );
-          continue;
-        }
-
-        throw new Error(
-          errMsg || `${provider.toUpperCase()} API Error: ${res.statusText}`
+      if (
+        provider === "groq" &&
+        (res.status === 429 ||
+          res.status === 400 ||
+          res.status === 413 ||
+          res.status === 503 ||
+          errMsg.includes("Rate limit") ||
+          errMsg.includes("tokens per minute") ||
+          errMsg.includes("Request too large"))
+      ) {
+        const waitMatch = errMsg.match(/try again in (\d+(?:\.\d+)?)s/i);
+        const waitMs = waitMatch
+          ? Math.min(11000, Math.ceil(parseFloat(waitMatch[1]) * 1000) + 500)
+          : 4500;
+        console.warn(
+          `Groq ${candidateModel} rate/token limit (${errMsg.slice(0, 90)}). Waiting ${waitMs}ms before retry...`
         );
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
       }
+
+      throw new Error(
+        errMsg || `${provider.toUpperCase()} API Error: ${res.statusText}`
+      );
     }
 
     throw new Error(
       lastError ||
-        "All models in the pool reached their per-minute token limit. Please wait 15 seconds and try again."
+        "Per-minute token limit reached. Please wait 10 seconds and try again."
     );
   }
 
@@ -251,7 +256,10 @@ export async function generateStructuredContent(params: {
       });
     } catch (firstErr: any) {
       const errMsg = String(firstErr?.message || "");
-      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key not valid")) {
+      if (
+        errMsg.includes("API_KEY_INVALID") ||
+        errMsg.includes("API key not valid")
+      ) {
         throw firstErr;
       }
       response = await ai.models.generateContent({
@@ -286,13 +294,23 @@ export function formatGeminiError(error: any, rawKeyProvided?: string): string {
     ? `(Key starts with "${cleanKey.slice(0, 6)}...", length: ${cleanKey.length} chars)`
     : "(Using server .env.local key)";
 
-  if (msg.includes("BILLING_DISABLED") || msg.includes("requires billing to be enabled")) {
+  if (
+    msg.includes("BILLING_DISABLED") ||
+    msg.includes("requires billing to be enabled")
+  ) {
     return `Your Vertex AI key (${preview}) requires billing to be enabled in Google Cloud. To run for free without billing, use a Google AI Studio key (starts with AIzaSy) or a free Groq key (starts with gsk_).`;
   }
 
-  if (msg.includes("SERVICE_DISABLED") || msg.includes("aiplatform.googleapis.com")) {
-    const urlMatch = msg.match(/https:\/\/console\.developers\.google\.com\/apis\/api\/aiplatform\.googleapis\.com\/overview\?project=\d+/);
-    const enableUrl = urlMatch ? urlMatch[0] : "https://console.developers.google.com/apis/api/aiplatform.googleapis.com/overview";
+  if (
+    msg.includes("SERVICE_DISABLED") ||
+    msg.includes("aiplatform.googleapis.com")
+  ) {
+    const urlMatch = msg.match(
+      /https:\/\/console\.developers\.google\.com\/apis\/api\/aiplatform\.googleapis\.com\/overview\?project=\d+/
+    );
+    const enableUrl = urlMatch
+      ? urlMatch[0]
+      : "https://console.developers.google.com/apis/api/aiplatform.googleapis.com/overview";
     return `Your Vertex AI key ${preview} is valid, but you need to click Enable on the Google Cloud API page: ${enableUrl}`;
   }
 
@@ -302,16 +320,21 @@ export function formatGeminiError(error: any, rawKeyProvided?: string): string {
     }
     return `Google rejected the API key as invalid ${preview}. Please verify the key or clear the input box to use the default server key.`;
   }
-  if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429") || msg.includes("Rate limit")) {
-    return "Per-minute token rate limit reached. Please wait ~15 seconds and run again.";
+  if (
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("429") ||
+    msg.includes("Rate limit")
+  ) {
+    return "Per-minute token rate limit reached. Please wait ~10 seconds and run again.";
   }
-  return msg || "An unexpected error occurred while communicating with the AI provider.";
+  return (
+    msg ||
+    "An unexpected error occurred while communicating with the AI provider."
+  );
 }
 
 export function extractJsonFromText<T>(rawText: string): T {
-  const cleaned = rawText
-    .replace(/<think>[\s\S]*?<\/think>/gi, "")
-    .trim();
+  const cleaned = rawText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   try {
     return JSON.parse(cleaned) as T;
   } catch {
@@ -333,7 +356,9 @@ export function extractJsonFromText<T>(rawText: string): T {
   }
 }
 
-export function extractGroundingLinks(response: any): { title: string; url: string }[] {
+export function extractGroundingLinks(
+  response: any
+): { title: string; url: string }[] {
   const links: { title: string; url: string }[] = [];
   const seen = new Set<string>();
 

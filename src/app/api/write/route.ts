@@ -14,12 +14,30 @@ function sanitizeArticleText(markdown: string): {
   cleaned: string;
   emDashesRemoved: number;
 } {
-  const matches = markdown.match(/—/g);
+  const matches = markdown.match(/—|\s[-–]\s/g);
   const count = matches ? matches.length : 0;
   const cleaned = markdown
     .replace(/^```(?:markdown|md)?\s*/i, "")
     .replace(/\s*```$/i, "")
+    // Replace non-breaking hyphens (\u2011) and en-dashes (\u2013) with standard hyphen
+    .replace(/[\u2010\u2011\u2012\u2013]/g, "-")
+    // Replace narrow no-break spaces (\u202F, \u2009) with normal space or nothing before %
+    .replace(/[\u202F\u2009]+%/g, "%")
+    .replace(/[\u202F\u2009]/g, " ")
+    // In Markdown headings (# ... - ...), convert spaced hyphen to colon (: )
+    .replace(/^(#{1,4}\s+[^\n-]+?)\s+-\s+/gm, "$1: ")
+    // Remove em-dashes (—) and spaced dash punctuation ( - ) in prose
     .replace(/\s*—\s*/g, ", ")
+    .replace(/\s+-\s+/g, ", ")
+    // Fix common Hebrew construct-state (סמיכות) & gender agreement slips
+    .replace(/בשתי המוצרים/g, "בשני המוצרים")
+    .replace(/שתי מוצרים/g, "שני מוצרים")
+    .replace(/שתי מסלולים/g, "שני מסלולים")
+    .replace(/שתי אפיקים/g, "שני אפיקים")
+    .replace(/מהקרן הפנסיה/g, "מקרן הפנסיה")
+    .replace(/הקרן הפנסיה/g, "קרן הפנסיה")
+    .replace(/הקופת גמל/g, "קופת הגמל")
+    .replace(/מהקופת גמל/g, "מקופת הגמל")
     .trim();
   return { cleaned, emDashesRemoved: count };
 }
@@ -63,13 +81,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isHebrew =
+      /hebrew|עברית/i.test(targetLanguage) || /[\u0590-\u05FF]/.test(topic);
+
+    const hebrewWritingMandate = isHebrew
+      ? `
+STRICT NATIVE ISRAELI HEBREW MANDATE (ENFORCE 100%):
+1. Write 100% natural, idiomatic, fluent Israeli Hebrew as written by a senior editor at TheMarker, Calcalist, or Globes.
+2. STRICT HEBREW GRAMMAR (סמיכות ושם המספר):
+   - In construct state (סמיכות), NEVER put ה הידיעה on the first word: write "קרן הפנסיה", "מקרן הפנסיה", "קופת הגמל", "דמי הניהול", "בית ההשקעות" (NEVER "הקרן הפנסיה" or "מהקרן הפנסיה").
+   - Enforce strict gender agreement for numbers (שם המספר): "שני מוצרים / שני מסלולים / שני מכשירים" (masculine), "שתי קרנות / שתי קופות / שתי אפשרויות" (feminine).
+3. NEVER invent fake Hebrew words or literal word-for-word calques from English (such as "האי-סכנות", "מסית", "שוקית"). Use real, standard Israeli Hebrew terminology.
+4. DO NOT insert English translations in parentheses after Hebrew terms (e.g., NEVER write "אימות מתמשך (Continuous Authentication)" or "שרשרת האספקה (Supply Chain)"). Write pure Hebrew without English clutter.
+5. NEVER invent fake Israeli studies, fake reports (like "לפי דוח של פאנדר" or "לפי מחקר של אוניברסיטת תל אביב"), fake percentages, or fake website names. Only cite real sources provided in the Verified Sources list below.
+6. NEVER use em-dashes (—) or spaced hyphens ( - ) as sentence punctuation; use commas, colons, or periods.
+7. Stay 100% locked onto the exact subject "${topic}".`
+      : "";
+
     const intelligenceBlock = feasibilityContext
       ? `
-Verified Multi-Source Research Context (Integrate these real insights, latest news, Reddit u/username quotes & X perspectives, and authoritative sources):
-- Latest News: ${JSON.stringify(feasibilityContext.latestNewsSummary || [])}
-- Reddit Insights (with u/username): ${JSON.stringify(feasibilityContext.redditInsights || [])}
-- X (Twitter) Insights: ${JSON.stringify(feasibilityContext.xTwitterInsights || [])}
-- Verified Sources: ${JSON.stringify(feasibilityContext.authoritativeSources || [])}
+Verified Multi-Source Research Context Strictly for "${topic}":
+- Domain Insights & News: ${JSON.stringify(
+          feasibilityContext.latestNewsSummary || []
+        )}
+- Reddit Insights (with u/username): ${JSON.stringify(
+          feasibilityContext.redditInsights || []
+        )}
+- Verified Web Sources & Terminology: ${JSON.stringify(
+          (feasibilityContext.authoritativeSources || []).slice(0, 6)
+        )}
 `
       : "";
 
@@ -78,21 +118,24 @@ Verified Multi-Source Research Context (Integrate these real insights, latest ne
       : "";
 
     // Call A: Stages 1, 2, 3, 5, 6, 7, 8&9 Structured Strategy & Metadata JSON
-    const strategyPrompt = `Execute Stages 1, 2, 3, 5, 6, 7, and 8&9 of the 9-Stage SEO & GEO Writing Workflow for the following assignment:
+    const strategyPrompt = `Execute Stages 1, 2, 3, 5, 6, 7, and 8&9 of the 9-Stage SEO & GEO Writing Workflow for the EXACT topic below:
 
-Topic: "${topic}"
+EXACT TOPIC (LOCK 100% TO THIS SUBJECT): "${topic}"
 Target Language: "${targetLanguage}"
 Target Country/Market: "${targetCountry}"
 Target Audience: "${targetAudience || "Infer sensible default and list in assumptions"}"
 Website/Brand: "${websiteBrand || "Infer sensible default and list in assumptions"}"
 Target Word Count: ${wordCount}
+${hebrewWritingMandate}
 ${standingRulesBlock}
 ${intelligenceBlock}
 
 IMPORTANT RULES:
-1. Write Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
-2. Provide 10 realistic user prompts in 'stage2GeoPrompts' across Informational, How-To, Best / Top, Comparison, and Edge-Case styles, each with a 2-3 sentence quote-ready direct answer.
-3. ZERO EM DASHES (—) anywhere in the output.
+1. Every stage MUST be 100% about "${topic}". Never drift to another subject.
+2. Write Competitor/Keyword terms (Stage 1), GEO Prompts & Direct Answers (Stage 2), Outline (Stage 3), and Meta Titles/Descriptions (Stage 5) in 100% pure, idiomatic, native "${targetLanguage}" (except for the hyphenated English URL slug in Stage 5 and English filename in Stage 6).
+3. Provide 10 realistic user prompts in 'stage2GeoPrompts' across Informational, How-To, Best / Top, Comparison, and Edge-Case styles, each with a 2-3 sentence quote-ready direct answer.
+4. In 'stage7FactCheckTable', only list real verified facts and real URLs from the Verified Web Sources above. Never invent fake URLs or fake reports.
+5. ZERO EM DASHES (—) anywhere in the output.
 
 Return ONLY a valid JSON object matching this exact structure:
 {
@@ -114,7 +157,7 @@ Return ONLY a valid JSON object matching this exact structure:
   "stage2GeoPrompts": [
     {
       "searchStyle": "Informational",
-      "prompt": "Realistic user prompt",
+      "prompt": "Realistic user prompt strictly about ${topic}",
       "quoteReadyDirectAnswer": "2-3 sentence quote-ready direct answer optimized for AI citation"
     }
   ],
@@ -153,11 +196,11 @@ Return ONLY a valid JSON object matching this exact structure:
   },
   "stage7FactCheckTable": [
     {
-      "claim": "Specific statistic, law, date, or market mechanic stated in the article",
+      "claim": "Specific domain fact, rule, or mechanism stated in the article",
       "status": "Verified",
       "sourceTitle": "Authoritative Source Name",
       "sourceUrl": "https://...",
-      "verificationNote": "How this was verified"
+      "verificationNote": "Verified via live web research"
     }
   ],
   "stage8And9QualityAudit": {
@@ -172,57 +215,76 @@ Return ONLY a valid JSON object matching this exact structure:
   }
 }`;
 
-    // Call B: Dedicated Stage 4 Full Article Markdown Generation (pure Markdown, zero JSON truncation risk)
-    const articlePrompt = `Write Stage 4 (The Full, Publication-Ready SEO & GEO Article in Markdown) for the following assignment:
-
-Topic: "${topic}"
-Target Language: "${targetLanguage}"
-Target Country/Market: "${targetCountry}"
-Target Audience: "${targetAudience || "Experienced practitioners and decision-makers"}"
-Website/Brand: "${websiteBrand || "Authoritative industry publication"}"
-Target Word Count: ~${wordCount} words
-${standingRulesBlock}
-${intelligenceBlock}
-
-CRITICAL WRITING RULES (ENFORCE 100%):
-1. Write the entire article in 100% pure, idiomatic, native "${targetLanguage}".
-2. Start with a compelling H1 (# Title), followed immediately by a direct, concrete 2-3 sentence answer to the main query. No throat-clearing, no clichés.
-3. Open EVERY H2 section (## Heading) with a concise 1-2 sentence quote-ready direct answer before expanding into deep analysis, examples, and edge cases.
-4. Include a comprehensive, mathematically reconciled Markdown comparison table specific to "${topic}" (verify all sums, percentages, and column units).
-5. REDDIT ATTRIBUTION RULE: When citing Reddit insights from the research context, ALWAYS include the specific Reddit username (e.g., u/username in r/subreddit) and quote/explain what that user actually shared. Never drop unattributed questions into the text.
-6. Qualify legal, financial, or regulatory statements with jurisdiction ("${targetCountry}") and timeframe (2026).
-7. Include a dedicated FAQ section (## Frequently Asked Questions / שאלות נפוצות) answering 5 high-intent questions concisely, followed by a practical bottom-line conclusion.
-8. ZERO EM DASHES (—) anywhere in the article. Use commas, periods, colons, or parentheses instead.
-9. Output ONLY the full Markdown article starting with "# ". Do NOT wrap in JSON or code fences.`;
-
-    const [strategyResponse, articleResponse] = await Promise.all([
-      generateStructuredContent({
-        apiKey,
-        model,
-        preferredGroqModel: "qwen/qwen3.8-27b",
-        systemInstruction: WRITER_SYSTEM_PROMPT,
-        userPrompt: strategyPrompt,
-        temperature: 0.25,
-        useGoogleSearch: true,
-        jsonMode: true,
-        maxTokens: 4096,
-      }),
-      generateStructuredContent({
-        apiKey,
-        model,
-        preferredGroqModel: "openai/gpt-oss-120b",
-        systemInstruction: WRITER_SYSTEM_PROMPT,
-        userPrompt: articlePrompt,
-        temperature: 0.35,
-        useGoogleSearch: true,
-        jsonMode: false,
-        maxTokens: 6000,
-      }),
-    ]);
+    const strategyResponse = await generateStructuredContent({
+      apiKey,
+      model,
+      preferredGroqModel: "openai/gpt-oss-120b",
+      systemInstruction: WRITER_SYSTEM_PROMPT,
+      userPrompt: strategyPrompt,
+      temperature: 0.2,
+      useGoogleSearch: true,
+      jsonMode: true,
+      maxTokens: 2400,
+    });
 
     const parsed = extractJsonFromText<WriterOutputPackage>(
       strategyResponse.text
     );
+
+    // Call B: Dedicated Stage 4 Full Article Markdown Generation guided by Stage 3 Outline
+    const outlineGuidance = parsed.stage3Outline
+      ? `Follow this Outline strictly on the topic "${topic}":\nH1: ${
+          parsed.stage3Outline.h1Title
+        }\nSections:\n${(parsed.stage3Outline.sections || [])
+          .map((s) => `- ${s.headingLevel}: ${s.headingText} (${s.directOpeningDraft})`)
+          .join("\n")}`
+      : "";
+
+    const articlePrompt = `Write Stage 4 (The Full, Publication-Ready SEO & GEO Article in Markdown) exclusively about the following topic:
+
+EXACT TOPIC (LOCK 100% TO THIS SUBJECT): "${topic}"
+Target Language: "${targetLanguage}"
+Target Country/Market: "${targetCountry}"
+Target Audience: "${
+      targetAudience ||
+      parsed.assumptions?.targetAudience ||
+      "Experienced practitioners and decision-makers"
+    }"
+Website/Brand: "${
+      websiteBrand ||
+      parsed.assumptions?.websiteBrand ||
+      "Authoritative industry publication"
+    }"
+Target Word Count: ~${wordCount} words
+${hebrewWritingMandate}
+${standingRulesBlock}
+${intelligenceBlock}
+${outlineGuidance}
+
+CRITICAL WRITING RULES (ENFORCE 100%):
+1. STAY 100% ON THE EXACT TOPIC: "${topic}". Do NOT write about cybersecurity, phishing, or any unrelated topic unless "${topic}" explicitly asks for it.
+2. Write the entire article in 100% pure, idiomatic, native "${targetLanguage}".
+3. NEVER invent fake surveys, fake university studies (like "לפי מחקר של אוניברסיטת..."), fake reports (like "לפי דוח של פאנדר"), or unverified statistics. Explain the real domain mechanics, practical criteria, pros/cons, and real-world scenarios accurately.
+4. Start with a compelling H1 (# Title), followed immediately by a direct, concrete 2-3 sentence answer to the main query. No throat-clearing, no clichés.
+5. Open EVERY H2 section (## Heading) with a concise 1-2 sentence quote-ready direct answer before expanding into deep analysis, examples, and edge cases.
+6. Include a comprehensive, mathematically reconciled Markdown comparison table specific to "${topic}".
+7. Qualify legal, financial, or regulatory statements with jurisdiction ("${targetCountry}") and timeframe (2026).
+8. Include a dedicated FAQ section answering 5 high-intent questions concisely, followed by a practical bottom-line conclusion.
+9. ZERO EM DASHES (—) anywhere in the article.
+10. Output ONLY the full Markdown article starting with "# ". Do NOT wrap in JSON or code fences.`;
+
+    const articleResponse = await generateStructuredContent({
+      apiKey,
+      model,
+      preferredGroqModel: "openai/gpt-oss-120b",
+      systemInstruction: WRITER_SYSTEM_PROMPT,
+      userPrompt: articlePrompt,
+      temperature: 0.25,
+      useGoogleSearch: true,
+      jsonMode: false,
+      maxTokens: 3400,
+    });
+
     const { cleaned, emDashesRemoved } = sanitizeArticleText(
       articleResponse.text
     );

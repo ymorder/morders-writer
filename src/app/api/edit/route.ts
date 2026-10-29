@@ -34,8 +34,19 @@ function applyEditorialFixesToMarkdown(
     }
   }
 
-  // Enforce zero em-dashes (—)
-  updated = updated.replace(/\s*—\s*/g, ", ");
+  // Clean non-breaking hyphens (\u2011), narrow spaces (\u202F), em-dashes (—), and spaced hyphens ( - )
+  updated = updated
+    .replace(/[\u2010\u2011\u2012\u2013]/g, "-")
+    .replace(/[\u202F\u2009]+%/g, "%")
+    .replace(/[\u202F\u2009]/g, " ")
+    .replace(/^(#{1,4}\s+[^\n-]+?)\s+-\s+/gm, "$1: ")
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s+-\s+/g, ", ")
+    .replace(/בשתי המוצרים/g, "בשני המוצרים")
+    .replace(/שתי מוצרים/g, "שני מוצרים")
+    .replace(/מהקרן הפנסיה/g, "מקרן הפנסיה")
+    .replace(/הקרן הפנסיה/g, "קרן הפנסיה");
+
   return updated;
 }
 
@@ -79,7 +90,12 @@ export async function POST(req: NextRequest) {
       ? `STANDING CLIENT / AGENCY RULES (Enforce strictly across the document):\n${standingRules.trim()}`
       : `STANDING CLIENT / AGENCY RULES: None specified.`;
 
-    const isShortText = submittedText.length < 2500;
+    const isShortText = submittedText.length < 1800;
+    // Cap the text excerpt sent for audit to 4,200 chars so Hebrew UTF-8 tokenization never exceeds Groq's 8,000 TPM per-request limit
+    const textForAuditPrompt =
+      submittedText.length > 4200
+        ? submittedText.slice(0, 4200)
+        : submittedText;
 
     const userPrompt = `Analyze and edit the following submitted text according to your Content Editor & Text Analyst instructions.
 
@@ -89,11 +105,12 @@ ${standingRulesBlock}
 
 SUBMITTED TEXT:
 """
-${submittedText}
+${textForAuditPrompt}
 """
 
 IMPORTANT INSTRUCTIONS FOR REQUIRED FIXES:
 - In "requiredFixes", "originalPhrasing" MUST be an exact, verbatim substring copied directly from SUBMITTED TEXT so it can be highlighted and replaced cleanly.
+- If the text is in Hebrew, flag and fix any invented words, literal English calques, untranslated English terms in parentheses, or unverified study citations.
 - Order "requiredFixes" strictly by priorityLevel (1 = Factual Errors, 2 = Logical/Completeness Gaps, 3 = Structure & Audience Fit, 4 = Clarity & Readability, 5 = Tone, Style & Word Choice).
 
 Return ONLY a valid JSON object matching this exact schema:
@@ -153,18 +170,17 @@ Return ONLY a valid JSON object matching this exact schema:
     const { text: rawText } = await generateStructuredContent({
       apiKey,
       model,
-      preferredGroqModel: "openai/gpt-oss-safeguard-20b",
+      preferredGroqModel: "openai/gpt-oss-120b",
       systemInstruction: EDITOR_SYSTEM_PROMPT,
       userPrompt,
-      temperature: 0.25,
+      temperature: 0.2,
       useGoogleSearch: true,
       jsonMode: true,
-      maxTokens: 4096,
+      maxTokens: 1800,
     });
 
     const parsed = extractJsonFromText<EditorOutputPackage>(rawText);
 
-    // Ensure requiredFixes are sorted strictly 1 -> 5
     if (Array.isArray(parsed.requiredFixes)) {
       parsed.requiredFixes.sort(
         (a, b) => (a.priorityLevel || 5) - (b.priorityLevel || 5)
@@ -181,8 +197,10 @@ Return ONLY a valid JSON object matching this exact schema:
           parsed
         );
       } else {
-        parsed.editedPublishReadyMarkdown =
-          parsed.editedPublishReadyMarkdown.replace(/\s*—\s*/g, ", ");
+        parsed.editedPublishReadyMarkdown = applyEditorialFixesToMarkdown(
+          parsed.editedPublishReadyMarkdown,
+          parsed
+        );
       }
     }
 
