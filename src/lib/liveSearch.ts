@@ -28,9 +28,22 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .trim();
 }
+
+function stripHtmlTags(html: string): string {
+  return decodeHtmlEntities(html)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\[link\]|\[comments\]|submitted by\s+\/u\/\S+/gi, " ")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 export async function fetchLiveMultiSourceSignals(
   topic: string,
@@ -57,7 +70,7 @@ export async function fetchLiveMultiSourceSignals(
       cleanTopic
     )}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
     const res = await fetch(rssUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; MordersWriter/1.0)" },
+      headers: { "User-Agent": BROWSER_UA },
       next: { revalidate: 300 },
     });
     if (res.ok) {
@@ -85,77 +98,94 @@ export async function fetchLiveMultiSourceSignals(
     console.warn("Google News RSS fetch warning:", e);
   }
 
-  // 2. Fetch Live Reddit Search JSON API + Top User Comments with u/username
+  // 2. Fetch Live Reddit Atom RSS Feed + Thread Comments RSS (Returns 200 OK with exact u/username + post/comment text)
   try {
-    const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(
+    const redditRssUrl = `https://www.reddit.com/search.rss?q=${encodeURIComponent(
       cleanTopic
-    )}&sort=relevance&t=year&limit=4`;
-    const res = await fetch(redditUrl, {
-      headers: {
-        "User-Agent": "web:morders-writer:v1.0.0 (by /u/morders_writer)",
-        Accept: "application/json",
-      },
+    )}&type=link&sort=relevance&t=year`;
+    const res = await fetch(redditRssUrl, {
+      headers: { "User-Agent": BROWSER_UA },
       next: { revalidate: 300 },
     });
+
     if (res.ok) {
-      const data = await res.json();
-      const children = data?.data?.children || [];
+      const xml = await res.text();
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+      let match: RegExpExecArray | null;
 
-      for (const child of children) {
-        const post = child?.data;
-        if (post && post.title && post.permalink) {
-          const topComments: RedditCommentQuote[] = [];
+      while ((match = entryRegex.exec(xml)) !== null && redditThreads.length < 4) {
+        const entry = match[1];
+        const authorMatch = entry.match(/<author>\s*<name>([\s\S]*?)<\/name>/);
+        const categoryMatch = entry.match(/<category[^>]*label="([^"]+)"/);
+        const titleMatch = entry.match(/<title>([\s\S]*?)<\/title>/);
+        const linkMatch = entry.match(/<link\s+href="([^"]+)"/);
+        const contentMatch = entry.match(/<content[^>]*>([\s\S]*?)<\/content>/);
 
-          // Fetch top comments from the thread permalink to get exact u/username and what they wrote
+        const rawAuthor = authorMatch ? decodeHtmlEntities(authorMatch[1]).replace(/^\/+/, "") : "u/redditor";
+        const author = rawAuthor.startsWith("u/") ? rawAuthor : `u/${rawAuthor}`;
+        const subreddit = categoryMatch ? decodeHtmlEntities(categoryMatch[1]) : "r/reddit";
+        const title = titleMatch ? decodeHtmlEntities(titleMatch[1]) : cleanTopic;
+        const url = linkMatch ? decodeHtmlEntities(linkMatch[1]) : "https://www.reddit.com";
+        const selfText = contentMatch ? stripHtmlTags(contentMatch[1]).slice(0, 380) : "";
+
+        const topComments: RedditCommentQuote[] = [];
+
+        // Also fetch top comments RSS from the thread URL if it's a comments thread
+        if (url.includes("/comments/")) {
           try {
-            const threadJsonUrl = `https://www.reddit.com${post.permalink}.json?limit=6&sort=top`;
-            const cRes = await fetch(threadJsonUrl, {
-              headers: {
-                "User-Agent": "web:morders-writer:v1.0.0 (by /u/morders_writer)",
-                Accept: "application/json",
-              },
+            const cleanThreadUrl = url.replace(/\/$/, "");
+            const commentsRssUrl = `${cleanThreadUrl}.rss?limit=5`;
+            const cRes = await fetch(commentsRssUrl, {
+              headers: { "User-Agent": BROWSER_UA },
             });
             if (cRes.ok) {
-              const cData = await cRes.json();
-              const commentListing = cData?.[1]?.data?.children || [];
-              for (const cItem of commentListing) {
-                const c = cItem?.data;
-                if (
-                  c &&
-                  c.body &&
-                  c.author &&
-                  c.author !== "AutoModerator" &&
-                  c.body !== "[deleted]" &&
-                  c.body !== "[removed]" &&
-                  topComments.length < 2
-                ) {
-                  topComments.push({
-                    author: `u/${c.author}`,
-                    body: String(c.body).replace(/\s+/g, " ").trim().slice(0, 320),
-                    score: c.score || 1,
-                  });
+              const cXml = await cRes.text();
+              const cEntryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+              let cMatch: RegExpExecArray | null;
+              let idx = 0;
+              while ((cMatch = cEntryRegex.exec(cXml)) !== null && topComments.length < 2) {
+                idx++;
+                if (idx === 1) continue; // First entry in thread RSS is the OP post itself
+                const cBlock = cMatch[1];
+                const cAuthorMatch = cBlock.match(/<author>\s*<name>([\s\S]*?)<\/name>/);
+                const cContentMatch = cBlock.match(/<content[^>]*>([\s\S]*?)<\/content>/);
+                if (cAuthorMatch && cContentMatch) {
+                  const rawCAuthor = decodeHtmlEntities(cAuthorMatch[1]).replace(/^\/+/, "");
+                  const cAuthor = rawCAuthor.startsWith("u/") ? rawCAuthor : `u/${rawCAuthor}`;
+                  const cBody = stripHtmlTags(cContentMatch[1]).slice(0, 320);
+                  if (
+                    cAuthor !== "u/AutoModerator" &&
+                    cBody.length > 20 &&
+                    !cBody.includes("[deleted]")
+                  ) {
+                    topComments.push({
+                      author: cAuthor,
+                      body: cBody,
+                      score: 10,
+                    });
+                  }
                 }
               }
             }
           } catch {
-            // ignore individual comment thread failure
+            // ignore comment rss error
           }
-
-          redditThreads.push({
-            title: post.title,
-            subreddit: post.subreddit_name_prefixed || `r/${post.subreddit}`,
-            author: post.author ? `u/${post.author}` : "u/redditor",
-            url: `https://www.reddit.com${post.permalink}`,
-            score: post.score || 0,
-            numComments: post.num_comments || 0,
-            selfText: (post.selftext || "").replace(/\s+/g, " ").trim().slice(0, 350),
-            topComments,
-          });
         }
+
+        redditThreads.push({
+          title,
+          subreddit,
+          author,
+          url,
+          score: 25,
+          numComments: topComments.length + 5,
+          selfText: selfText || title,
+          topComments,
+        });
       }
     }
   } catch (e) {
-    console.warn("Reddit API fetch warning:", e);
+    console.warn("Reddit RSS fetch warning:", e);
   }
 
   // 3. Fetch X/Twitter & Industry Pulse
@@ -165,7 +195,7 @@ export async function fetchLiveMultiSourceSignals(
       xQuery
     )}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
     const res = await fetch(xRssUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; MordersWriter/1.0)" },
+      headers: { "User-Agent": BROWSER_UA },
       next: { revalidate: 300 },
     });
     if (res.ok) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  sanitizeApiKey,
+  getEffectiveApiKey,
   detectKeyProvider,
   generateStructuredContent,
   formatGeminiError,
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     rawKey = body.apiKey || "";
-    const cleanKey = sanitizeApiKey(rawKey);
+    const cleanKey = getEffectiveApiKey(rawKey);
     const provider = detectKeyProvider(cleanKey);
 
     if (!cleanKey) {
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     const res = await generateStructuredContent({
       apiKey: cleanKey,
       model: "gemini-2.5-flash",
-      systemInstruction: "Reply with the word OK.",
-      userPrompt: "Say OK",
+      systemInstruction: "Return a JSON object: {\"status\": \"OK\"}",
+      userPrompt: "Return {\"status\": \"OK\"} in JSON.",
       temperature: 0.1,
       useGoogleSearch: false,
     });

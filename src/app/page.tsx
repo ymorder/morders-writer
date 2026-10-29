@@ -111,7 +111,9 @@ export default function MordersWriterPage() {
     const savedKey =
       localStorage.getItem("morders_writer_api_key") ||
       localStorage.getItem("nexus_gemini_api_key");
-    if (savedKey) setApiKey(savedKey);
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
   }, []);
 
   const handleSaveApiKey = (val: string) => {
@@ -155,15 +157,6 @@ export default function MordersWriterPage() {
   const handleRunFeasibilityOnly = async () => {
     setErrorMessage(null);
     setClarificationPrompt(null);
-
-    if (!apiKey.trim()) {
-      setShowKeyModal(true);
-      setPhase("error");
-      setErrorMessage(
-        "כדי לבצע מחקר וכתיבה אמיתיים ב-Gemini 2.5 Pro, אנא הדבק מפתח Gemini API בתיבה שנפתחה למעלה."
-      );
-      return;
-    }
 
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
@@ -214,15 +207,6 @@ export default function MordersWriterPage() {
 
     if (mode === "editor") {
       await handleExecuteStandaloneEditor();
-      return;
-    }
-
-    if (!apiKey.trim()) {
-      setShowKeyModal(true);
-      setPhase("error");
-      setErrorMessage(
-        "כדי לכתוב מאמר אמיתי, מעמיק ומבוסס מחקר חי ב-Gemini 2.5 Pro, אנא הדבק את מפתח ה-Gemini API שלך בתיבה שנפתחה למעלה."
-      );
       return;
     }
 
@@ -325,15 +309,6 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
   };
 
   const handleExecuteStandaloneEditor = async () => {
-    if (!apiKey.trim()) {
-      setShowKeyModal(true);
-      setPhase("error");
-      setErrorMessage(
-        "כדי להפעיל את העורך המקצועי ב-Gemini 2.5 Pro, אנא הדבק מפתח Gemini API בתיבה שנפתחה למעלה."
-      );
-      return;
-    }
-
     if (!editorText.trim()) {
       setPhase("error");
       setErrorMessage("אנא הדבק את הטקסט שברצונך שהעורך ינתח ויערוך.");
@@ -460,14 +435,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
             <button
               onClick={() => setShowKeyModal(!showKeyModal)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                apiKey
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-amber-500/15 border-amber-500/40 text-amber-200 hover:bg-amber-500/25"
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              {apiKey ? "Gemini Key Active" : "הגדר Gemini API Key"}
+              {apiKey ? "API Key Active" : "Server API Key Active (.env.local)"}
             </button>
           </div>
         </div>

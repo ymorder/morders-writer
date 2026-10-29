@@ -76,7 +76,7 @@ Pre-Fetched Live Signals from Google News & Reddit (including exact Reddit usern
 CRITICAL REDDIT RULE:
 When populating "redditInsights" (and later in the article), ALWAYS include the exact Reddit username (e.g. "u/username in r/subreddit") and quote/summarize what that specific user wrote (either from their post selfText or topComments), plus the thread URL in authoritativeSources. Never insert generic unattributed questions!
 
-Perform additional live searches across Google News, Reddit, X (Twitter), and official sources, and return a single valid JSON object with the exact following keys (write the summaries and verdict in "${targetLanguage}"):
+Synthesize the pre-fetched live signals from Google News, Reddit (including exact u/username quotes), X (Twitter), and official sources, and return a single valid JSON object with the exact following keys (write the summaries and verdict in "${targetLanguage}"):
 {
   "canWriteAuthoritatively": true,
   "confidenceScore": 94,

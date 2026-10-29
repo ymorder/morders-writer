@@ -6,7 +6,7 @@ Your job is to evaluate whether a given topic has sufficient verifiable, authori
 4. Official authoritative sources (regulatory bodies, empirical studies, official docs, market data)
 
 CRITICAL RULES:
-- Use your Google Search tool actively to look up the latest news, Reddit insights, X (Twitter) discussions, and authoritative sources on the topic in the specified Target Market and Target Language.
+- Analyze the pre-fetched live Google News, Reddit threads (including exact u/username and user comments), and X discussions provided in the prompt (and use your search tool if available).
 - Never invent facts, URLs, statistics, or quotes.
 - Determine if you can write a highly authoritative, factually verified article on this topic ("canWriteAuthoritatively": true/false) and score confidence (0-100).
 - Return ONLY valid JSON matching the requested schema without markdown code fences if possible, or inside a clean JSON block.`;
