@@ -16,7 +16,6 @@ import {
   ArrowRight,
   ExternalLink,
   Layers,
-  MessageSquare,
   Compass,
   Image as ImageIcon,
   Scale,
@@ -64,19 +63,19 @@ export default function MordersWriterPage() {
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-pro");
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
-  // Writer / Autonomous Inputs
+  // Writer / Autonomous Inputs (Defaulted to English & United States)
   const [topic, setTopic] = useState<string>(
     "Generative Engine Optimization (GEO) Strategy & RAG Citation Mechanics in 2026"
   );
-  const [targetLanguage, setTargetLanguage] = useState<string>("Hebrew (עברית)");
-  const [targetCountry, setTargetCountry] = useState<string>("Israel (ישראל)");
+  const [targetLanguage, setTargetLanguage] = useState<string>("English (US)");
+  const [targetCountry, setTargetCountry] = useState<string>("United States");
   const [targetAudience, setTargetAudience] = useState<string>("");
   const [websiteBrand, setWebsiteBrand] = useState<string>("");
   const [wordCount, setWordCount] = useState<number>(1800);
 
   // Standing Rules & Editor Inputs
   const [standingRules, setStandingRules] = useState<string>(
-    "ללא מקף ארוך (—). גבה כל טענה במספרים מתכנסים. הימנע מקלישאות AI ('לצלול', 'הסיבה לכך פשוטה', 'delve', 'unlock', 'game changer'). ציין תמיד שם משתמש מ-Reddit (u/...) וציטוט מדויק של מה שכתב."
+    "Never use em-dashes (—). Back up claims with reconcilable numbers. Avoid AI clichés ('delve', 'unlock', 'game changer', 'seamless'). Always attribute Reddit insights with exact u/username and what they wrote."
   );
   const [editorText, setEditorText] = useState<string>("");
   const [taskCard, setTaskCard] = useState<string>("");
@@ -135,12 +134,14 @@ export default function MordersWriterPage() {
       const data = await res.json();
       setKeyStatusMsg({
         valid: Boolean(data.valid),
-        text: data.message || (data.valid ? "המפתח תקין!" : "המפתח אינו תקין"),
+        text:
+          data.message ||
+          (data.valid ? "API Key is valid and active!" : "API Key is invalid"),
       });
     } catch (e: any) {
       setKeyStatusMsg({
         valid: false,
-        text: e?.message || "שגיאה בבדיקת המפתח",
+        text: e?.message || "Failed to verify API key",
       });
     } finally {
       setVerifyingKey(false);
@@ -161,7 +162,7 @@ export default function MordersWriterPage() {
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
-        "נא לבחור שפת יעד (Target Language) ומדינת יעד (Target Market) מתוך הרשימה הנפתחת לפני תחילת המחקר."
+        "Please select both a Target Language and Target Country/Market from the dropdowns before starting research."
       );
       return;
     }
@@ -213,7 +214,7 @@ export default function MordersWriterPage() {
     if (!targetLanguage.trim() || !targetCountry.trim()) {
       setPhase("clarifying");
       setClarificationPrompt(
-        "נא לבחור שפת יעד ומדינת יעד מתוך הרשימה הנפתחת לפני תחילת התהליך."
+        "Please select both a Target Language and Target Country/Market from the dropdowns before starting."
       );
       return;
     }
@@ -311,7 +312,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
   const handleExecuteStandaloneEditor = async () => {
     if (!editorText.trim()) {
       setPhase("error");
-      setErrorMessage("אנא הדבק את הטקסט שברצונך שהעורך ינתח ויערוך.");
+      setErrorMessage("Please paste the text you want the Editor to analyze and polish.");
       return;
     }
 
@@ -348,7 +349,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         DEMO_WRITER_PACKAGE.stage4FullArticleMarkdown
     );
     setTaskCard(
-      "קהל יעד: מנהלי שיווק ומקבלי החלטות\nמטרה: בדיקת דיוק עובדתי, מוכנות לציטוט במנועי AI (GEO) וזרימה טבעית בשפת המקור."
+      "Target Audience: Enterprise Marketing Leaders & Technical SEOs\nGoal: Audit for factual accuracy, GEO quote-readiness, and natural flow."
     );
   };
 
@@ -438,25 +439,22 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
             >
               <KeyRound className="w-3.5 h-3.5 shrink-0" />
-              {apiKey ? "API Key Active" : "Server Key Active"}
+              {apiKey ? "Custom Key Active" : "Server Key Active"}
             </button>
           </div>
         </div>
 
         {/* Collapsible API Key Bar */}
         {showKeyModal && (
-          <div
-            dir="rtl"
-            className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4 text-right"
-          >
+          <div className="border-t border-zinc-800 bg-[#0b0c10] px-6 lg:px-10 py-4">
             <div className="max-w-[1680px] mx-auto space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-xs text-zinc-300 flex flex-wrap items-center gap-3">
                   <span>
                     <strong className="text-white">
-                      הגדרת מפתח API (תומך ב-Gemini / OpenAI / Claude / Groq):
+                      API Key Settings (Supports Gemini / OpenAI / Claude / Groq):
                     </strong>{" "}
-                    מפתח השרת ב-<code>.env.local</code> כבר פעיל אוטומטית! תוכל גם להדביק מפתח חלופי כאן:
+                    Your server key in <code>.env.local</code> is already active! You can also paste an override key below:
                   </span>
                   <a
                     href="https://aistudio.google.com/app/apikey"
@@ -480,19 +478,18 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                 <div className="flex items-center gap-2 flex-1 max-w-xl">
                   <input
-                    dir="ltr"
                     type={showRawKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => handleSaveApiKey(e.target.value)}
-                    placeholder="השאר ריק לשימוש במפתח השרת או הדבק מפתח (AIzaSy / gsk_ / sk-)"
-                    className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white font-mono text-left focus:outline-none focus:border-white"
+                    placeholder="Leave blank to use Server Key (.env.local) or paste AIzaSy / gsk_ / sk-..."
+                    className="w-full bg-[#050507] border border-zinc-700 rounded-xl px-4 py-2 text-xs text-white font-mono focus:outline-none focus:border-white"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRawKey(!showRawKey)}
                     className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs hover:text-white whitespace-nowrap"
                   >
-                    {showRawKey ? "הסתר" : "הצג מפתח"}
+                    {showRawKey ? "Hide" : "Show"}
                   </button>
                   <button
                     type="button"
@@ -500,14 +497,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     disabled={verifyingKey}
                     className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
                   >
-                    {verifyingKey ? "בודק..." : "בדוק מפתח"}
+                    {verifyingKey ? "Testing..." : "Verify Key"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowKeyModal(false)}
                     className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
                   >
-                    סגור
+                    Close
                   </button>
                 </div>
               </div>
@@ -533,14 +530,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
         {/* LEFT COLUMN: Mission Control & Inputs (4 Cols) */}
         <div className="lg:col-span-4 space-y-6">
           {mode !== "editor" ? (
-            <div
-              dir="rtl"
-              className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6 text-right"
-            >
+            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                 <h2 className="text-base font-bold text-white flex items-center gap-2.5">
                   <Compass className="w-4 h-4 text-zinc-300" />
-                  הגדרות נושא, שפה ושוק יעד
+                  Topic &amp; Market Configuration
                 </h2>
                 <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-zinc-900 text-zinc-400 border border-zinc-800">
                   9-Stage Pipeline
@@ -550,16 +544,16 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               {/* Topic */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-zinc-100">
-                  נושא המאמר / ביטוי מפתח ראשי *
+                  Subject / Topic / Primary Query *
                 </label>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  הזן את הנושא, השאלה או תחום המומחיות שעליו נבצע מחקר ב-Google, ב-Reddit וברשת X.
+                  Enter the subject or primary keyword to research across Google News, Reddit, and X.
                 </p>
                 <textarea
                   rows={3}
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="לדוגמה: מיסוי קרנות השתלמות והשקעות אלטרנטיביות ב-2026..."
+                  placeholder="e.g., 2026 EU AI Act Compliance for FinTech SaaS, or Tax-Loss Harvesting Mechanics..."
                   className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors leading-relaxed"
                 />
               </div>
@@ -568,7 +562,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-zinc-100">
-                    שפת כתיבה (Language) *
+                    Target Language *
                   </label>
                   <select
                     value={targetLanguage}
@@ -585,7 +579,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-zinc-100">
-                    מדינת / שוק יעד (Market) *
+                    Target Country / Market *
                   </label>
                   <select
                     value={targetCountry}
@@ -605,19 +599,19 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               <div className="pt-4 border-t border-zinc-800/80 space-y-4">
                 <div>
                   <span className="text-xs font-semibold text-zinc-200 block">
-                    פרמטרים משלימים (אופציונלי — יושלמו אוטומטית תחת &apos;הנחות עבודה&apos; אם יישארו ריקים)
+                    Optional Parameters (Auto-Assumed if Blank)
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-zinc-300">
-                    קהל יעד (Target Audience)
+                    Target Audience
                   </label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="למשל: סמנכ״לי כספים, יזמים, משקיעים פרטיים..."
+                    placeholder="e.g., B2B CFOs, Technical SEO Leads, Institutional Investors..."
                     className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
                   />
                 </div>
@@ -625,19 +619,19 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2 space-y-1.5">
                     <label className="block text-xs font-medium text-zinc-300">
-                      אתר / מותג וטון כתיבה
+                      Website / Brand Tone
                     </label>
                     <input
                       type="text"
                       value={websiteBrand}
                       onChange={(e) => setWebsiteBrand(e.target.value)}
-                      placeholder="למשל: מגזין כלכלי סמכותי"
+                      placeholder="e.g., Enterprise FinTech Publication"
                       className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-zinc-300">
-                      כמות מילים
+                      Word Count
                     </label>
                     <input
                       type="number"
@@ -654,16 +648,16 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               <div className="pt-4 border-t border-zinc-800/80 space-y-2">
                 <label className="block text-sm font-semibold text-zinc-100 flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-zinc-300" />
-                  חוקי עבודה קבועים והנחיות סוכנות (Standing Rules)
+                  Standing Client / Agency Rules
                 </label>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  כללים אלו נאכפים בכל שלבי הכתיבה והעריכה (איסור מקפים ארוכים, איסור קלישאות AI, חובת ציון שם משתמש מ-Reddit).
+                  Enforced across all writing and editing stages (zero em-dashes, zero AI clichés, mandatory Reddit u/username quotes).
                 </p>
                 <textarea
                   rows={3}
                   value={standingRules}
                   onChange={(e) => setStandingRules(e.target.value)}
-                  placeholder="חוקי בית, מילים אסורות, דרישות רגולטוריות..."
+                  placeholder="House style, banned terms, regulatory disclaimers..."
                   className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-zinc-100 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
@@ -684,14 +678,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   phase === "editing" ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      מבצע כעת שלב: {phase.toUpperCase()}...
+                      Running {phase.toUpperCase()} Stage...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
                       {mode === "autonomous"
-                        ? "הפעל תהליך אוטונומי מלא (מחקר ← כתיבה ← עריכה)"
-                        : "הפעל כותב 9 שלבים (SEO + GEO)"}
+                        ? "Launch Autonomous Research → Write → Edit"
+                        : "Run 9-Stage SEO & GEO Writer"}
                     </>
                   )}
                 </button>
@@ -706,61 +700,58 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   className="w-full py-3 px-4 rounded-2xl bg-[#12141c] hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
                 >
                   <Search className="w-3.5 h-3.5 text-zinc-300" />
-                  בדיקת היתכנות ומחקר Reddit / Google / X בלבד
+                  Pre-Check Topic Feasibility Only (Google, Reddit &amp; X)
                 </button>
               </div>
             </div>
           ) : (
             /* STANDALONE EDITOR INPUT PANEL */
-            <div
-              dir="rtl"
-              className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6 text-right"
-            >
+            <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-7 shadow-2xl space-y-6">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                 <h2 className="text-base font-bold text-white flex items-center gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  עורך תוכן ומנתח טקסט (Agency Editor)
+                  Content Editor &amp; Text Analyst
                 </h2>
                 <button
                   onClick={loadSampleIntoStandaloneEditor}
                   className="text-xs text-zinc-300 hover:text-white underline font-medium"
                 >
-                  טען מאמר נוכחי לבדיקה
+                  Load Current Article
                 </button>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-zinc-100">
-                  טקסט לבדיקה ועריכה (זיהוי שפה וכיווניות אוטומטי) *
+                  Submitted Text (Auto-Detects Any Language &amp; RTL) *
                 </label>
                 <textarea
                   rows={8}
                   value={editorText}
                   onChange={(e) => setEditorText(e.target.value)}
-                  placeholder="הדבק כאן מאמר, דף נחיתה, פוסט או טיוטת GEO בעברית, אנגלית או כל שפה אחרת..."
+                  placeholder="Paste client article, landing page, social post, or GEO draft in English, Hebrew, Arabic, Spanish..."
                   className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3.5 text-xs text-white placeholder-zinc-500 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-zinc-100">
-                  כרטיס משימה — Task Card (אופציונלי — גובר על ברירות המחדל)
+                  Task Card (Optional — Overrides Defaults)
                 </label>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  הגדר מילת מפתח, קהל יעד, פלטפורמה או אורך רצוי. אם יישאר ריק, העורך יסיק זאת מהטקסט.
+                  Specify target keyword, audience, platform, or target length. If left blank, the Editor infers them.
                 </p>
                 <textarea
                   rows={3}
                   value={taskCard}
                   onChange={(e) => setTaskCard(e.target.value)}
-                  placeholder="מילת מפתח, קהל יעד, פלטפורמה, הוראות תרגום/לוקליזציה..."
+                  placeholder="Target keyword, target audience, platform, localization instructions..."
                   className="w-full rounded-2xl bg-[#050507] border border-zinc-800 px-4 py-3 text-xs text-zinc-100 leading-relaxed focus:outline-none focus:border-zinc-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-zinc-100">
-                  חוקי לקוח / סוכנות קבועים (Standing Rules)
+                  Standing Client / Agency Rules
                 </label>
                 <textarea
                   rows={2}
@@ -777,7 +768,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   onChange={(e) => setIncludeEditedVersion(e.target.checked)}
                   className="rounded border-zinc-700 bg-zinc-900 text-white focus:ring-0"
                 />
-                ייצר גם גרסה ערוכה ומוכנה לפרסום (בנוסף לדוח הביקורת וההשוואה)
+                Generate full edited, publish-ready version alongside analysis
               </label>
 
               <button
@@ -788,12 +779,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {phase === "editing" ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    מבצע ניתוח ועריכה לפי סדר עדיפויות 1–5...
+                    Running Priority-Ordered Editorial Audit...
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    הפעל ניתוח עריכה ואימות עובדות
+                    Run Full Editorial Analysis &amp; Fact Audit
                   </>
                 )}
               </button>
@@ -801,13 +792,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
           )}
 
           {/* Live Pipeline Telemetry Stepper */}
-          <div
-            dir="rtl"
-            className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-6 space-y-4 text-right"
-          >
+          <div className="rounded-3xl border border-zinc-800/90 bg-[#0b0c10] p-6 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                סטטוס מערכת אוטונומית
+                Autonomous Pipeline Status
               </span>
               <span
                 className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold shrink-0 ${
@@ -835,14 +823,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Globe className="w-4 h-4 text-zinc-300 shrink-0" />
                   <span className="font-medium leading-snug">
-                    1. מחקר חדשות, Reddit (עם שם משתמש) ו-X
+                    1. Live News, Reddit (u/username) &amp; X Intel
                   </span>
                 </div>
                 {feasibility && (
-                  <span
-                    dir="ltr"
-                    className="text-xs font-bold text-emerald-400 shrink-0"
-                  >
+                  <span className="text-xs font-bold text-emerald-400 shrink-0">
                     {feasibility.confidenceScore}%
                   </span>
                 )}
@@ -860,7 +845,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Layers className="w-4 h-4 text-zinc-300 shrink-0" />
                   <span className="font-medium leading-snug">
-                    2. כתיבת 9 שלבים (SEO + GEO + אימות מתמטי)
+                    2. 9-Stage SEO &amp; GEO Writer
                   </span>
                 </div>
                 {writerOutput && (
@@ -880,14 +865,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="flex items-center gap-2.5 min-w-0">
                   <ShieldCheck className="w-4 h-4 text-zinc-300 shrink-0" />
                   <span className="font-medium leading-snug">
-                    3. ביקורת עורך סוכנות מדורגת (עדיפות 1–5)
+                    3. Priority-Ordered Agency Editor (1–5)
                   </span>
                 </div>
                 {editorOutput && (
-                  <span
-                    dir="ltr"
-                    className="text-[11px] font-bold text-emerald-400 shrink-0"
-                  >
+                  <span className="text-[11px] font-bold text-emerald-400 shrink-0">
                     {editorOutput.publicationReadyVerdict}
                   </span>
                 )}
@@ -906,7 +888,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-100 text-xs flex items-start gap-3 leading-relaxed break-words overflow-hidden">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                 <div className="space-y-1 min-w-0 flex-1">
-                  <div className="font-bold">שים לב</div>
+                  <div className="font-bold">Execution Notice</div>
                   <div className="break-words">{errorMessage}</div>
                 </div>
               </div>
@@ -927,7 +909,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              מאמר סופי מוכן לפרסום
+              Publish-Ready Article
             </button>
 
             <button
@@ -939,7 +921,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              מחקר חי: Google, Reddit (u/user) &amp; X
+              Live Intel: Google, Reddit (u/user) &amp; X
             </button>
 
             <button
@@ -951,7 +933,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              שלבים 1–3: מתחרים, GEO וראשי פרקים
+              Stages 1–3: SERP, GEO &amp; Outline
             </button>
 
             <button
@@ -963,7 +945,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
-              שלב 4: טיוטת כותב מלאה
+              Stage 4: Writer Draft
             </button>
 
             <button
@@ -975,7 +957,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              שלבים 5–6: מטא-טאגס ותמונה
+              Stages 5–6: Meta &amp; Image
             </button>
 
             <button
@@ -987,7 +969,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <Scale className="w-3.5 h-3.5" />
-              שלבים 7–9: אימות עובדות ומתמטיקה
+              Stages 7–9: Fact &amp; Math Audit
             </button>
 
             <button
@@ -999,7 +981,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              דוח עורך והשוואת תיקונים
+              Editor Critique &amp; Fixes
             </button>
           </div>
 
@@ -1017,11 +999,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                           "Ready to Publish"}
                       </span>
                       <span className="text-xs text-zinc-300">
-                        ללא מקפים ארוכים (—) • מתמטיקה מאומתת • ייחוס משתמשי Reddit (u/...)
+                        Zero Em-Dashes (—) • Math Reconciled • Reddit u/username Attributed
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-white pt-1">
-                      מאמר סופי ערוך ומוכן לפרסום
+                      Final Autonomous Publish-Ready Output
                     </h3>
                   </div>
 
@@ -1040,12 +1022,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       {copiedId === "final-md" ? (
                         <>
                           <Check className="w-4 h-4 text-emerald-600" />
-                          הועתק ללוח!
+                          Copied Markdown!
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          העתק מאמר מלא (Markdown)
+                          Copy Publish-Ready Markdown
                         </>
                       )}
                     </button>
@@ -1056,37 +1038,37 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {writerOutput?.assumptions && (
                   <div className="rounded-2xl bg-[#050507] border border-zinc-800 p-6">
                     <div className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-4">
-                      הנחות עבודה והגדרות מאמר (Assumptions)
+                      Explicit Assumptions &amp; Parameters
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 text-xs">
                       <div className="space-y-1">
-                        <span className="text-zinc-400 block">שפת יעד</span>
+                        <span className="text-zinc-400 block">Language</span>
                         <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetLanguage}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-zinc-400 block">שוק יעד</span>
+                        <span className="text-zinc-400 block">Market</span>
                         <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetMarket}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-zinc-400 block">קהל יעד</span>
+                        <span className="text-zinc-400 block">Audience</span>
                         <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.targetAudience}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-zinc-400 block">טון ומותג</span>
+                        <span className="text-zinc-400 block">Brand Tone</span>
                         <span className="font-semibold text-white text-sm">
                           {writerOutput.assumptions.websiteBrand}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-zinc-400 block">היקף יעד</span>
+                        <span className="text-zinc-400 block">Target Length</span>
                         <span className="font-semibold text-white text-sm">
-                          ~{writerOutput.assumptions.targetWordCount} מילים
+                          ~{writerOutput.assumptions.targetWordCount} words
                         </span>
                       </div>
                     </div>
@@ -1113,16 +1095,16 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-zinc-800">
                   <div className="space-y-1">
                     <h3 className="text-xl font-bold text-white">
-                      מחקר היתכנות אוטונומי ואיסוף מודיעין חי (Google, Reddit, X)
+                      Autonomous Topic Feasibility &amp; Live Signal Radar
                     </h3>
                     <p className="text-sm text-zinc-300">
-                      בוחן האם קיימים מספיק מקורות מאומתים, חדשות עדכניות וציטוטי משתמשים אמיתיים מ-Reddit לפני תחילת הכתיבה.
+                      Evaluates whether sufficient verifiable facts and authentic Reddit user quotes exist before writing.
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <span className="text-xs text-zinc-400 block">
-                        ציון היתכנות
+                        Feasibility Score
                       </span>
                       <span className="text-2xl font-bold text-emerald-400">
                         {feasibility.confidenceScore}/100
@@ -1136,15 +1118,15 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       }`}
                     >
                       {feasibility.canWriteAuthoritatively
-                        ? "מאושר לכתיבה סמכותית"
-                        : "מידע מאומת חסר"}
+                        ? "APPROVED FOR AUTHORITATIVE WRITING"
+                        : "INSUFFICIENT VERIFIED DATA"}
                     </div>
                   </div>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 text-sm text-zinc-100 leading-relaxed">
                   <strong className="text-white font-bold block mb-1">
-                    החלטת מנוע המחקר:{" "}
+                    Autonomous Research Verdict:{" "}
                   </strong>
                   {feasibility.feasibilityVerdict}
                 </div>
@@ -1154,7 +1136,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
                     <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
                       <Globe className="w-4 h-4 text-blue-400" />
-                      Google News ועדכוני רשת
+                      Google News &amp; Web Signals
                     </div>
                     <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.latestNewsSummary || []).map((item, i) => (
@@ -1172,7 +1154,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
                     <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
                       <UserCheck className="w-4 h-4 text-orange-400" />
-                      ציטוטי משתמשים מ-Reddit (u/username)
+                      Reddit User Quotes (u/username)
                     </div>
                     <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.redditInsights || []).map((item, i) => (
@@ -1190,7 +1172,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
                     <div className="flex items-center gap-2.5 text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-zinc-800">
                       <Zap className="w-4 h-4 text-sky-400" />
-                      תובנות מומחים מרשת X (Twitter)
+                      X (Twitter) Expert Pulse
                     </div>
                     <ul className="space-y-3 text-xs text-zinc-200">
                       {(feasibility.xTwitterInsights || []).map((item, i) => (
@@ -1208,7 +1190,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {/* Grounded Authoritative Sources */}
                 <div className="rounded-2xl border border-zinc-800 bg-[#050507] p-6 space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
-                    מקורות רשמיים ושרשורי Reddit שאומתו במחקר
+                    Verified Official Sources &amp; Reddit Threads Discovered
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {(feasibility.authoritativeSources || []).map((src, i) => (
@@ -1247,10 +1229,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 1 (Stage 1)
+                      Stage 1
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      מחקר מתחרים, מפת מילות מפתח ופערי תוכן (Content Gaps)
+                      Competitor Research, Keyword Map &amp; Content Gaps
                     </h3>
                   </div>
 
@@ -1258,7 +1240,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-4">
                       <div>
                         <span className="text-xs text-zinc-400 block mb-1">
-                          ביטוי מפתח ראשי (Primary Keyword)
+                          Primary Keyword
                         </span>
                         <span className="text-base font-bold text-white">
                           {writerOutput.stage1CompetitorResearch.primaryKeyword}
@@ -1267,7 +1249,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                       <div>
                         <span className="text-xs text-zinc-400 block mb-2">
-                          ביטויי מפתח משניים (Secondary Keywords)
+                          Secondary Keywords
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {(
@@ -1288,7 +1270,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-4">
                       <div>
                         <span className="text-xs text-zinc-400 block mb-2">
-                          ישויות קשורות (Related Entities)
+                          Related Entities (Knowledge Graph)
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {(
@@ -1307,7 +1289,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                       <div>
                         <span className="text-xs text-zinc-400 block mb-2">
-                          שאלות נפוצות מגוגל (People Also Ask)
+                          People Also Ask (PAA)
                         </span>
                         <ul className="space-y-2 text-xs text-zinc-200 list-disc ml-4 leading-relaxed">
                           {(
@@ -1322,7 +1304,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                       <span className="text-xs font-bold text-white block">
-                        פערי תוכן שזוהו אצל המתחרים (Content Gaps)
+                        Identified Competitor Content Gaps
                       </span>
                       <p className="text-xs text-zinc-300 leading-relaxed">
                         {
@@ -1349,10 +1331,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 2 (Stage 2)
+                      Stage 2
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      מחקר פרומפטים למנועי AI (GEO) ותשובות ישירות מוכנות לציטוט
+                      GEO (AI Prompt Research &amp; Quote-Ready Direct Citations)
                     </h3>
                   </div>
 
@@ -1380,7 +1362,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
-                            העתק תשובה
+                            Copy Snippet
                           </button>
                         </div>
                         <div className="text-sm font-bold text-white leading-snug">
@@ -1398,17 +1380,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 3 (Stage 3)
+                      Stage 3
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      מבנה מאמר אסימטרי וראשי פרקים (H1 / H2 / H3 / FAQ)
+                      Asymmetric Architecture &amp; Direct-Answer Outline
                     </h3>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-5">
                     <div>
                       <span className="text-xs text-zinc-400 uppercase block mb-1">
-                        כותרת ראשית (H1)
+                        H1 Title
                       </span>
                       <h4 className="text-base font-bold text-white">
                         {writerOutput.stage3Outline?.h1Title}
@@ -1434,7 +1416,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                               </span>
                             </div>
                             <p className="text-xs text-zinc-200 leading-relaxed">
-                              <strong className="text-white">פתיחה ישירה (1–2 משפטים):</strong>{" "}
+                              <strong className="text-white">Direct Opening (1–2 sentences):</strong>{" "}
                               {sec.directOpeningDraft}
                             </p>
                           </div>
@@ -1452,10 +1434,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 4 (Stage 4)
+                      Stage 4
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      מאמר מלא לפני שלב העריכה
+                      Writer Stage 4 Output (Pre-Editor Draft)
                     </h3>
                   </div>
                   <button
@@ -1470,12 +1452,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     {copiedId === "stage4-md" ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-600" />
-                        הועתק
+                        Copied
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        העתק Markdown
+                        Copy Stage 4 Markdown
                       </>
                     )}
                   </button>
@@ -1496,10 +1478,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 5 (Stage 5)
+                      Stage 5
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      תגיות מטא (Meta Titles 50–60 תווים, Meta Descriptions 140–155 תווים) ו-URL Slug
+                      Meta Titles (50–60 chars), Meta Descriptions (140–155 chars) &amp; URL Slug
                     </h3>
                   </div>
 
@@ -1521,14 +1503,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       }
                       className="px-3.5 py-2 rounded-xl bg-zinc-800 text-xs font-semibold text-white hover:bg-zinc-700"
                     >
-                      {copiedId === "slug" ? "הועתק!" : "העתק Slug"}
+                      {copiedId === "slug" ? "Copied!" : "Copy Slug"}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                        3 אפשרויות Meta Title
+                        3 Meta Title Options
                       </h4>
                       {(writerOutput.stage5MetaAndSlug?.metaTitles || []).map(
                         (mt, i) => (
@@ -1542,11 +1524,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                           >
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-bold text-white">
-                                אפשרות {i + 1}{" "}
-                                {mt.isRecommended && "★ מומלץ"}
+                                Option {i + 1}{" "}
+                                {mt.isRecommended && "★ Recommended"}
                               </span>
                               <span className="text-xs text-zinc-400">
-                                {mt.title.length} תווים
+                                {mt.title.length} chars
                               </span>
                             </div>
                             <div className="text-sm font-medium text-zinc-100">
@@ -1559,7 +1541,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                     <div className="space-y-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                        3 אפשרויות Meta Description
+                        3 Meta Description Options
                       </h4>
                       {(
                         writerOutput.stage5MetaAndSlug?.metaDescriptions || []
@@ -1574,11 +1556,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-bold text-white">
-                              אפשרות {i + 1}{" "}
-                              {md.isRecommended && "★ מומלץ"}
+                              Option {i + 1}{" "}
+                              {md.isRecommended && "★ Recommended"}
                             </span>
                             <span className="text-xs text-zinc-400">
-                              {md.description.length} תווים
+                              {md.description.length} chars
                             </span>
                           </div>
                           <div className="text-xs text-zinc-200 leading-relaxed">
@@ -1594,10 +1576,10 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 6 (Stage 6)
+                      Stage 6
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      פרומפט לתמונה ראשית (16:9), טקסט חלופי (Alt Text) ושם קובץ
+                      16:9 Editorial Featured Image Prompt, Alt Text &amp; Filename
                     </h3>
                   </div>
 
@@ -1605,7 +1587,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-white">
-                          פרומפט ליצירת תמונה (16:9 ללא טקסט או לוגו)
+                          16:9 Editorial Image Prompt (Zero Text / Logos)
                         </span>
                         <button
                           onClick={() =>
@@ -1617,7 +1599,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                           }
                           className="text-xs text-zinc-300 hover:text-white underline"
                         >
-                          {copiedId === "img-prompt" ? "הועתק!" : "העתק פרומפט"}
+                          {copiedId === "img-prompt" ? "Copied!" : "Copy Prompt"}
                         </button>
                       </div>
                       <p className="text-xs text-zinc-100 bg-[#0b0c10] p-4 rounded-xl border border-zinc-800 leading-relaxed">
@@ -1631,7 +1613,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800">
                         <span className="text-xs text-zinc-400 block mb-1">
-                          Alt Text (כולל ביטוי מפתח ראשי)
+                          Descriptive Alt Text (with Primary Keyword)
                         </span>
                         <span className="text-xs text-white font-medium">
                           {writerOutput.stage6FeaturedImage?.altText}
@@ -1639,7 +1621,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       </div>
                       <div className="p-4 rounded-xl bg-[#0b0c10] border border-zinc-800">
                         <span className="text-xs text-zinc-400 block mb-1">
-                          שם קובץ תקני באנגלית (Filename)
+                          Hyphenated English Filename
                         </span>
                         <code className="text-xs text-emerald-300 font-mono">
                           {writerOutput.stage6FeaturedImage?.englishFilename}
@@ -1658,25 +1640,25 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלב 7 (Stage 7)
+                      Stage 7
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      טבלת אימות עובדות ומקורות רשמיים (Fact Check Table)
+                      Fact Check &amp; Official Source Verification Table
                     </h3>
                   </div>
 
                   <div className="overflow-x-auto rounded-2xl border border-zinc-800">
-                    <table className="w-full text-left rtl:text-right text-xs">
+                    <table className="w-full text-left text-xs">
                       <thead className="bg-[#050507] text-zinc-200 uppercase text-xs">
                         <tr>
                           <th className="p-4 border-b border-zinc-800">
-                            טענה / נתון במאמר
+                            Claim / Data Point
                           </th>
                           <th className="p-4 border-b border-zinc-800">
-                            סטטוס
+                            Status
                           </th>
                           <th className="p-4 border-b border-zinc-800">
-                            מקור רשמי וביאור
+                            Verification &amp; Official Source
                           </th>
                         </tr>
                       </thead>
@@ -1728,17 +1710,17 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <section className="space-y-5">
                   <div className="border-b border-zinc-800 pb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      שלבים 8 ו-9 (Stages 8 &amp; 9)
+                      Stages 8 &amp; 9
                     </span>
                     <h3 className="text-lg font-bold text-white mt-0.5">
-                      בקרת ייחודיות, התכנסות מתמטית וטוהר שפה (ללא קלישאות AI)
+                      Uniqueness, Mathematical Reconciliation &amp; Humanization Audit
                     </h3>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                       <span className="text-sm font-bold text-white block">
-                        שלב 8: ביקורת מתמטית והתכנסות נתונים
+                        Stage 8: Mathematical &amp; Empirical Reconciliation
                       </span>
                       <p className="text-xs text-zinc-200 leading-relaxed">
                         {
@@ -1747,14 +1729,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                         }
                       </p>
                       <div className="pt-2 text-xs text-zinc-300 leading-relaxed">
-                        <strong className="text-white">בדיקת ייחודיות:</strong>{" "}
+                        <strong className="text-white">Uniqueness Audit:</strong>{" "}
                         {writerOutput.stage8And9QualityAudit?.uniquenessNotes}
                       </div>
                     </div>
 
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                       <span className="text-sm font-bold text-white block">
-                        שלב 9: טוהר שפה, אנושיות וניקוי תבניות AI
+                        Stage 9: Orthographic Purity &amp; Anti-Cliché Audit
                       </span>
                       <p className="text-xs text-zinc-200 leading-relaxed">
                         {
@@ -1765,7 +1747,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                       <div className="flex items-center gap-8 pt-2">
                         <div>
                           <span className="text-xs text-zinc-400 block">
-                            מקפים ארוכים (—)
+                            Em-Dashes (—)
                           </span>
                           <span className="text-xl font-bold text-emerald-400">
                             0
@@ -1773,7 +1755,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                         </div>
                         <div>
                           <span className="text-xs text-zinc-400 block">
-                            ציון גיוון משפטים
+                            Cadence Score
                           </span>
                           <span className="text-xl font-bold text-white">
                             {
@@ -1797,15 +1779,15 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                        דוח עורך תוכן ומנתח טקסט
+                        Digital Marketing Agency Editor Report
                       </span>
                       <span className="px-2.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-700 text-xs text-zinc-200">
-                        שפה שזוהתה: {editorOutput.detectedLanguage}{" "}
-                        {editorOutput.isRtlLanguage ? "(RTL)" : "(LTR)"}
+                        Detected Language: {editorOutput.detectedLanguage}{" "}
+                        {editorOutput.isRtlLanguage ? "(RTL Checked)" : "(LTR)"}
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-white pt-1">
-                      ניתוח עומק ותיקונים מדורגים לפי סדר עדיפויות (1 עד 5)
+                      Priority-Ranked Editorial Analysis &amp; Side-by-Side Fixes (1 → 5)
                     </h3>
                   </div>
 
@@ -1818,14 +1800,14 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2 p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-white">
-                      הערכה כוללת (Overall Assessment)
+                      Overall Editorial Assessment
                     </span>
                     <p className="text-sm text-zinc-100 leading-relaxed">
                       {editorOutput.overallAssessment}
                     </p>
                     {editorOutput.rtlDirectionAuditNote && (
                       <p className="text-xs text-zinc-300 pt-2 border-t border-zinc-800/80 leading-relaxed">
-                        <strong className="text-white">בדיקת כיווניות ופיסוק:</strong>{" "}
+                        <strong className="text-white">Language &amp; Direction Check:</strong>{" "}
                         {editorOutput.rtlDirectionAuditNote}
                       </p>
                     )}
@@ -1833,7 +1815,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                   <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                      הנחות עבודה של העורך
+                      Editor Assumptions
                     </span>
                     <ul className="space-y-2 text-xs text-zinc-200 list-disc ml-4 leading-relaxed">
                       {(editorOutput.assumptions || []).map((a, i) => (
@@ -1846,7 +1828,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {/* 3. Strengths */}
                 <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 space-y-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    נקודות חוזק בטקסט (נשמרו בעריכה)
+                    Key Editorial Strengths (Preserved)
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     {(editorOutput.strengths || []).map((str, i) => (
@@ -1864,12 +1846,12 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {/* 4. Required Fixes in Priority Order (1 to 5) with Side-by-Side Original vs Suggested */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                    תיקונים נדרשים לפי סדר עדיפויות (1. עובדות ← 2. לוגיקה ← 3. מבנה וקהל ← 4. בהירות ← 5. סגנון)
+                    Required Fixes Ordered by Priority (1. Factual → 2. Logic → 3. Structure → 4. Clarity → 5. Style)
                   </h4>
 
                   {(editorOutput.requiredFixes || []).length === 0 ? (
                     <div className="p-6 rounded-2xl bg-[#050507] border border-zinc-800 text-xs text-zinc-300">
-                      לא נמצאו שגיאות מחייבות — הטקסט עומד בכל דרישות הדיוק והמבנה.
+                      No required fixes identified — the text meets all accuracy and structural criteria.
                     </div>
                   ) : (
                     (editorOutput.requiredFixes || []).map((fix, idx) => (
@@ -1886,7 +1868,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30">
                             <span className="text-xs font-bold uppercase text-rose-300 block mb-1.5">
-                              ניסוח מקורי (Original)
+                              Original Phrasing
                             </span>
                             <p className="text-xs text-zinc-100 leading-relaxed">
                               “{fix.originalPhrasing}”
@@ -1895,7 +1877,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                           <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30">
                             <span className="text-xs font-bold uppercase text-emerald-300 block mb-1.5">
-                              ניסוח מוצע (Suggested Fix)
+                              Suggested Fix
                             </span>
                             <p className="text-xs text-white font-semibold leading-relaxed">
                               “{fix.suggestedPhrasing}”
@@ -1905,7 +1887,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
 
                         <p className="text-xs text-zinc-300 leading-relaxed">
                           <strong className="text-white">
-                            מדוע התיקון נדרש:
+                            Why this fix is needed:
                           </strong>{" "}
                           {fix.explanation}
                         </p>
@@ -1917,7 +1899,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {/* 5. Optional Suggestions for Improvement */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    הצעות אופציונליות לשיפור (מופרדות משגיאות חובה)
+                    Optional Suggestions for Improvement (Separated from Errors)
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(editorOutput.suggestionsForImprovement || []).map(
@@ -1935,7 +1917,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                             </p>
                           )}
                           <p className="text-xs text-zinc-100 font-semibold leading-relaxed">
-                            ← “{sug.suggestedImprovement}”
+                            → “{sug.suggestedImprovement}”
                           </p>
                           <p className="text-xs text-zinc-300 leading-relaxed">
                             {sug.rationale}
@@ -1949,7 +1931,7 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
                 {/* 6. Items Needing Further Checking */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    סיווג עובדות מאומתות מול אומדנים והערכות
+                    Fact vs. Interpretation / Estimate Classification
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(editorOutput.itemsNeedingFurtherChecking || []).map(

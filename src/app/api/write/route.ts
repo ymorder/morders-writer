@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         {
           needsApiKey: true,
           error:
-            "חובה להזין מפתח API תקין בכפתור למעלה כדי לכתוב מאמר אמיתי ומעמיק.",
+            "Please configure a valid API Key in the top bar (or in .env.local) to run the 9-stage writer.",
         },
         { status: 401 }
       );

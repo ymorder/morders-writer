@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         {
           needsClarification: true,
           clarificationMessage:
-            "נא לבחור שפת יעד ומדינת יעד לפני תחילת המחקר.",
+            "Please select a Target Language and Target Country/Market from the dropdowns before starting research.",
         },
         { status: 200 }
       );
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         {
           needsApiKey: true,
           error:
-            "כדי לייצר תוכן אמיתי, מעמיק ומדויק, חובה להזין מפתח API תקין בכפתור למעלה.",
+            "Please configure a valid API Key in the top bar (or in .env.local) to run live AI research and writing.",
         },
         { status: 401 }
       );

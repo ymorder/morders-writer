@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           valid: false,
-          message: "התיבה ריקה — אנא הדבק מפתח API.",
+          message: "No API key found — please paste an API key.",
         },
         { status: 400 }
       );
@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       valid: true,
       provider,
-      keyPreview: `${cleanKey.slice(0, 6)}... (${cleanKey.length} תווים)`,
-      message: `המפתח תקין ועובד מצוין! (ספק: ${provider.toUpperCase()}, תגובה: ${res.text.trim().slice(0, 20)})`,
+      keyPreview: `${cleanKey.slice(0, 6)}... (${cleanKey.length} chars)`,
+      message: `API Key is valid and active! (Provider: ${provider.toUpperCase()}, Response: ${res.text.trim().slice(0, 20)})`,
     });
   } catch (err: any) {
     return NextResponse.json(

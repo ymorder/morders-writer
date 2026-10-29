@@ -50,7 +50,7 @@ export function getGeminiClient(userProvidedKey?: string) {
   const apiKey = getEffectiveApiKey(userProvidedKey);
   if (!apiKey) {
     throw new Error(
-      "חסר מפתח API. אנא לחץ על 'הגדר API Key' בראש העמוד והדבק מפתח תקין."
+      "Missing API Key. Please click 'API Key Settings' in the top bar and paste a valid key."
     );
   }
   return new GoogleGenAI({ apiKey });
@@ -75,7 +75,7 @@ export async function generateStructuredContent(params: {
 
   const key = getEffectiveApiKey(rawKey);
   if (!key) {
-    throw new Error("חסר מפתח API. אנא הזן מפתח בתיבה בראש העמוד.");
+    throw new Error("Missing API Key. Please enter an API key in the top bar.");
   }
 
   const provider = detectKeyProvider(key);
@@ -152,11 +152,14 @@ export async function generateStructuredContent(params: {
       }
 
       throw new Error(
-        errMsg || `שגיאת ${provider.toUpperCase()}: ${res.statusText}`
+        errMsg || `${provider.toUpperCase()} API Error: ${res.statusText}`
       );
     }
 
-    throw new Error(lastError || "כל המודלים הזמינים הגיעו למגבלת הדקה. המתן 20 שניות ונסה שוב.");
+    throw new Error(
+      lastError ||
+        "All models in the pool reached their per-minute token limit. Please wait 20 seconds and try again."
+    );
   }
 
   // 2. Anthropic Claude (sk-ant-...)
@@ -241,29 +244,29 @@ export function formatGeminiError(error: any, rawKeyProvided?: string): string {
   const msg = String(error?.message || error || "");
   const cleanKey = sanitizeApiKey(rawKeyProvided);
   const preview = cleanKey
-    ? `(המפתח שהוזן מתחיל ב-"${cleanKey.slice(0, 6)}..." ואורכו ${cleanKey.length} תווים)`
-    : "(לא התקבל מפתח)";
+    ? `(Key starts with "${cleanKey.slice(0, 6)}...", length: ${cleanKey.length} chars)`
+    : "(Using server .env.local key)";
 
   if (msg.includes("BILLING_DISABLED") || msg.includes("requires billing to be enabled")) {
-    return `מפתח ה-Vertex AI שלך (AQ...) דורש הפעלת Billing בפרויקט הגוגל שלך. כדי לעבוד בחינם לגמרי בלי כרטיס אשראי: 1) הפעל את ה-API החינמי בקישור https://console.developers.google.com/apis/api/generativelanguage.googleapis.com/overview?project=769363569955 ואז צור מפתח שמתחיל ב-AIzaSy ב-Google AI Studio, או 2) הפק מפתח חינמי בשנייה מ-Groq בקישור https://console.groq.com/keys (מתחיל ב-gsk_).`;
+    return `Your Vertex AI key (${preview}) requires billing to be enabled in Google Cloud. To run for free without billing, use a Google AI Studio key (starts with AIzaSy) or a free Groq key (starts with gsk_).`;
   }
 
   if (msg.includes("SERVICE_DISABLED") || msg.includes("aiplatform.googleapis.com")) {
     const urlMatch = msg.match(/https:\/\/console\.developers\.google\.com\/apis\/api\/aiplatform\.googleapis\.com\/overview\?project=\d+/);
     const enableUrl = urlMatch ? urlMatch[0] : "https://console.developers.google.com/apis/api/aiplatform.googleapis.com/overview";
-    return `המפתח שלך (${preview}) הוא מפתח Vertex AI תקין לחלוטין! נותר רק ללחוץ על כפתור Enable בקישור הרשמי של הפרויקט שלך בגוגל: ${enableUrl}`;
+    return `Your Vertex AI key ${preview} is valid, but you need to click Enable on the Google Cloud API page: ${enableUrl}`;
   }
 
   if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) {
     if (cleanKey && !cleanKey.startsWith("AIza")) {
-      return `המפתח שהזנת ${preview} אינו מפתח Gemini תקין (מפתח Gemini חייב להתחיל באותיות AIzaSy ואורכו 39 תווים). אם זה מפתח של OpenAI הוא צריך להתחיל ב-sk- ואם של Groq ב-gsk_.`;
+      return `The key provided ${preview} is not a standard Gemini AI Studio key (must start with AIzaSy). Note: If you have an old invalid key in the top bar, clear the input box so the app uses the working server key in .env.local.`;
     }
-    return `גוגל דחתה את המפתח כלא תקין ${preview}. זה קורה אם: 1) המפתח לא הועתק במלואו (חייב להיות 39 תווים שמתחילים ב-AIzaSy), או 2) בפרויקט ה-Google Cloud שיצרת עדיין לא הופעל ה-Generative Language API. לחץ על 'בדוק מפתח' למעלה לבדיקה מהירה.`;
+    return `Google rejected the API key as invalid ${preview}. Please verify the key or clear the input box to use the default server key.`;
   }
-  if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429")) {
-    return "חרגת ממכסת הבקשות לדקה (Rate Limit). המתן כ-30 שניות או עבור למודל Gemini 2.5 Flash בתיבה למעלה.";
+  if (msg.includes("RESOURCE_EXHAUSTED") || msg.includes("429") || msg.includes("Rate limit")) {
+    return "Per-minute token rate limit reached. Please wait ~20 seconds and run again.";
   }
-  return msg || "אירעה שגיאה בתקשורת מול שרת ה-AI.";
+  return msg || "An unexpected error occurred while communicating with the AI provider.";
 }
 
 export function extractJsonFromText<T>(rawText: string): T {

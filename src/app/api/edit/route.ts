@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         {
           needsApiKey: true,
           error:
-            "חובה להזין מפתח API תקין בכפתור למעלה כדי לבצע עריכה מקצועית.",
+            "Please configure a valid API Key in the top bar (or in .env.local) to run the editorial audit.",
         },
         { status: 401 }
       );
