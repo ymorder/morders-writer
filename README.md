@@ -9,7 +9,7 @@ Before writing a single word, **Morder's Writer** autonomously evaluates whether
 ## Key Capabilities
 
 ### 1. Autonomous Topic Feasibility & Multi-Source Intelligence (`/api/feasibility`)
-- **Live Web, News, Reddit & X Grounding:** Queries real-time Google News RSS feeds, the live Reddit search API (`r/...` discussions, upvotes, and edge cases), and Google Search Grounding via Gemini 2.5.
+- **Live Web, News, Reddit & X Grounding:** Queries real-time Google News RSS feeds, the live Reddit search API (`r/...` discussions, upvotes, and edge cases), and Google Search Grounding via Gemini.
 - **Feasibility Scoring (0–100):** Calculates an explicit confidence score and verdict (`APPROVED FOR AUTHORITATIVE WRITING` vs. `INSUFFICIENT VERIFIED DATA`).
 - **Smart Input Handling:**
   1. Verifies that **Target Language** and **Target Country/Market** are specified before starting.
@@ -49,7 +49,7 @@ Runs automatically at the end of the **Autonomous Full Pipeline** or as a standa
 ## Dual Execution Engine (Works Out-of-the-Box!)
 
 1. **Zero-Config Live Scraper Mode (Default):** Works immediately out of the box without requiring an API key—fetches live Google News RSS feeds and live Reddit JSON threads for your topic and synthesizes the full 9-stage SEO/GEO package and editorial audit.
-2. **Gemini 2.5 Flash / Pro + Google Search Grounding Mode:** Click **"Live Scraper Active (Add Key Optional)"** in the top-right bar to enter a `GEMINI_API_KEY` (or configure it in `.env.local`) for full LLM synthesis with live Google Search Grounding.
+2. **Gemini + Google Search Grounding Mode:** Click **"Live Scraper Active (Add Key Optional)"** in the top-right bar to enter a `GEMINI_API_KEY` (or configure it in `.env.local`) for full LLM synthesis with live Google Search Grounding.
 
 ---
 

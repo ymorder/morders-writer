@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  DEFAULT_GEMINI_MODEL,
   hasGeminiKey,
   generateStructuredContent,
   extractJsonFromText,
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       websiteBrand,
       wordCount = 1800,
       apiKey,
-      model = "gemini-2.5-pro",
+      model = DEFAULT_GEMINI_MODEL,
     } = body;
     providedKey = apiKey || "";
 

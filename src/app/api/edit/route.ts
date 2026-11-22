@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  DEFAULT_GEMINI_MODEL,
   hasGeminiKey,
   generateStructuredContent,
   extractJsonFromText,
@@ -7,7 +8,7 @@ import {
 } from "@/lib/gemini";
 import { EDITOR_SYSTEM_PROMPT } from "@/lib/prompts";
 import { EditorOutputPackage } from "@/types/pipeline";
-import { sanitizeArticleText } from "@/app/api/write/route";
+import { sanitizeArticleText } from "@/lib/sanitize";
 
 export const maxDuration = 60;
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       standingRules,
       includeFullEditedVersion = true,
       apiKey,
-      model = "gemini-2.5-pro",
+      model = DEFAULT_GEMINI_MODEL,
     } = body;
     providedKey = apiKey || "";
 

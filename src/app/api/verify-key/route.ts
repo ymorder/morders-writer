@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  FAST_GEMINI_MODEL,
   getEffectiveApiKey,
   detectKeyProvider,
   generateStructuredContent,
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const res = await generateStructuredContent({
       apiKey: cleanKey,
-      model: "gemini-2.5-flash",
+      model: FAST_GEMINI_MODEL,
       systemInstruction: "Return a JSON object: {\"status\": \"OK\"}",
       userPrompt: "Return {\"status\": \"OK\"} in JSON.",
       temperature: 0.1,
