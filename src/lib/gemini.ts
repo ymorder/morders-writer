@@ -1,5 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+export const FAST_GEMINI_MODEL = "gemini-3.5-flash-lite";
+const CLAUDE_MODEL = "claude-sonnet-5-5";
+
 export type KeyProvider =
   | "gemini"
   | "vertex_express"
@@ -46,16 +50,6 @@ export function hasGeminiKey(userProvidedKey?: string): boolean {
   return Boolean(apiKey && apiKey.length > 8);
 }
 
-export function getGeminiClient(userProvidedKey?: string) {
-  const apiKey = getEffectiveApiKey(userProvidedKey);
-  if (!apiKey) {
-    throw new Error(
-      "Missing API Key. Please click 'API Key Settings' in the top bar and paste a valid key."
-    );
-  }
-  return new GoogleGenAI({ apiKey });
-}
-
 function estimateTokens(text: string): number {
   // Hebrew / UTF-8 non-ASCII characters use ~1.2 tokens per char in BPE; ASCII uses ~0.28 tokens per char
   let nonAscii = 0;
@@ -79,7 +73,7 @@ export async function generateStructuredContent(params: {
 }): Promise<{ text: string; groundingLinks: { title: string; url: string }[] }> {
   const {
     apiKey: rawKey,
-    model = "gemini-2.5-pro",
+    model = DEFAULT_GEMINI_MODEL,
     systemInstruction,
     userPrompt,
     temperature = 0.25,
@@ -114,7 +108,7 @@ export async function generateStructuredContent(params: {
             "qwen/qwen3.8-27b",
           ]
         : provider === "openrouter"
-        ? ["google/gemini-2.5-pro-preview"]
+        ? [`google/${DEFAULT_GEMINI_MODEL}`]
         : ["gpt-4o"];
 
     const sysContent = `${systemInstruction.replace(
@@ -218,9 +212,9 @@ export async function generateStructuredContent(params: {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-7-sonnet-latest",
-        max_tokens: 8000,
-        temperature,
+        model: CLAUDE_MODEL,
+        // Thinking tokens count towards this limit. This model rejects custom temperatures.
+        max_tokens: 16000,
         system: systemInstruction,
         messages: [{ role: "user", content: userPrompt }],
       }),
@@ -233,7 +227,15 @@ export async function generateStructuredContent(params: {
       );
     }
 
-    const text = data?.content?.[0]?.text || "";
+    if (data?.stop_reason === "refusal") {
+      throw new Error("Claude declined this request. Please rephrase the topic and try again.");
+    }
+
+    // Thinking blocks can come before the answer, so pick out the text blocks.
+    const text = (data?.content || [])
+      .filter((block: any) => block?.type === "text")
+      .map((block: any) => block.text)
+      .join("");
     return { text, groundingLinks: [] };
   }
 

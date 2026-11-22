@@ -60,7 +60,7 @@ export default function MordersWriterPage() {
   // Mode & Settings
   const [mode, setMode] = useState<StudioMode>("autonomous");
   const [apiKey, setApiKey] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-pro");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-3.8-flash");
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   // Writer / Autonomous Inputs (Defaulted to English & United States)
@@ -426,11 +426,11 @@ Goal: Publish-ready #1 ranking SEO & GEO article with zero em-dashes, verified m
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-[#0c0d12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-medium text-zinc-200 focus:outline-none focus:border-zinc-500"
             >
-              <option value="gemini-2.5-pro">
-                AI Model: Flagship Pro (120B / 2.5 Pro)
+              <option value="gemini-3.8-flash">
+                AI Model: Flagship (120B / Gemini 3.8 Flash)
               </option>
-              <option value="gemini-2.5-flash">
-                AI Model: Fast Flash
+              <option value="gemini-3.5-flash-lite">
+                AI Model: Fast (Gemini 3.5 Flash-Lite)
               </option>
             </select>
 
